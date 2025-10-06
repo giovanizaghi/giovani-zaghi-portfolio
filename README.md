@@ -73,6 +73,11 @@ Full-stack engineer with 11+ years of experience across fintech, insurance, ERP,
 - **Tech:** Unity, C#, 2D/3D animation, particle systems, IAP, Google Play
 - **Highlights:** Published 3 mobile games, designed 2D/3D animation systems, and monetized via ads/IAP.
 
+**Featured Videos:**
+- [Unity 2D Mobile game platform!](https://www.youtube.com/watch?v=YxSKYGEzSBs)
+- [Unity 2D Platformer – Camera Shake and Animation Events](https://www.youtube.com/watch?v=SW5IAmPmknM)
+- [Unity 2D Parallax – 2D cutscene!](https://www.youtube.com/watch?v=uOsm4mBNkbo)
+
 ### Freelance Java Developer (Desktop Systems)
 - **Type:** Business Systems
 - **Tech:** Java Swing, PostgreSQL
