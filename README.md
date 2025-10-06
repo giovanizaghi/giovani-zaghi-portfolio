@@ -29,13 +29,13 @@ Full-stack engineer with 11+ years of experience across fintech, insurance, ERP,
 - **Screenshots:**  
 
   <div style="overflow-x: auto; white-space: nowrap;">
-    <img src="https://play-lh.googleusercontent.com/gn0bmTtag0ieWYJHfrfWceMYKTvaE9gZwW6e-Eixx0hwX3goAclFsY5BXAkiGBaW3Q=w2560-h1440" alt="Status Invest Chart and Market Screenshot" width="100" style="display: inline-block;"/>
-    <img src="https://play-lh.googleusercontent.com/XlukE7Z8wdd7XXJqNRNn8lWh-CoYjq-97YRWijfOdA51XoV32cNm_JxY6DmztmUY6auu=w2560-h1440" alt="Status Invest Main Screen" width="100" style="display: inline-block;"/>
-    <img src="https://play-lh.googleusercontent.com/BnNEJ7CZapy965abT_LqNPVNUH2hRX-rw2Rjtz14oY9VuSEkKpZH7EjWv2sqS_aeJfxS=w2560-h1440" alt="Status Invest Portfolio Screen" width="100" style="display: inline-block;"/>
-    <img src="https://play-lh.googleusercontent.com/0SZhMF3bBmDCWzoBcaqZ0c0DLo2UfMahQ75T0YG-xLpc4NdB0H1tNyvKCtdfCArFqQ=w2560-h1440" alt="Status Invest Portfolio Consolidation" width="100" style="display: inline-block;"/>
-    <img src="https://play-lh.googleusercontent.com/zvqoW1SFVeGDLncTSNnqVXeOBlED1a9LzNpjnQXmphtLP8ZNQJuYl8HfNsITZUlOZw=w2560-h1440" alt="Status Invest Portfolio Consolidation" width="100" style="display: inline-block;"/>
-    <img src="https://play-lh.googleusercontent.com/8daHUIrq8t4rR02rYVmU_Hsi6xpXVOHPL7ZkTmUJaUEXb-iun2rQTejrFDasFttfwQ=w2560-h1440" alt="Status Invest Portfolio Consolidation" width="100" style="display: inline-block;"/>
-    <img src="https://play-lh.googleusercontent.com/F3p98G7z9RZR1WAEEj-FZNfA9eTDcr7HAOd6fh6jUcvM3vS6EmrVHi02t1YQbR1iYME=w2560-h1440" alt="Status Invest Portfolio Consolidation" width="100" style="display: inline-block;"/>
+    <img src="./images/app-status-1.jpg" width="100" style="display: inline-block;"/>
+    <img src="./images/app-status-2.jpg" width="100" style="display: inline-block;"/>
+    <img src="./images/app-status-3.jpg" width="100" style="display: inline-block;"/>
+    <img src="./images/app-status-4.jpg" width="100" style="display: inline-block;"/>
+    <img src="./images/app-status-5.jpg" width="100" style="display: inline-block;"/>
+    <img src="./images/app-status-6.jpg" width="100" style="display: inline-block;"/>
+    <img src="./images/app-status-7.jpg" width="100" style="display: inline-block;"/>
   </div>
 
 - **Highlights:**
@@ -47,6 +47,17 @@ Full-stack engineer with 11+ years of experience across fintech, insurance, ERP,
 - **Type:** Mobile App (React Native / Expo)
 - **Role:** Led frontend team, architected engineering standards and CI/CD pipelines.
 - **Tech:** React Native, Expo, Reanimated, Moti, Lottie, Redux, Node.js, .NET Core, AWS, GitLab, REST APIs.
+- **Screenshots:**  
+
+  <div style="overflow-x: auto; white-space: nowrap;">
+    <img src="./images/suno-app-1.png" width="100" style="display: inline-block;"/>
+    <img src="./images/suno-app-2.png" width="100" style="display: inline-block;"/>
+    <img src="./images/suno-app-3.png" width="100" style="display: inline-block;"/>
+    <img src="./images/suno-app-4.png" width="100" style="display: inline-block;"/>
+    <img src="./images/suno-app-5.png" width="100" style="display: inline-block;"/>
+    <img src="./images/suno-app-6.png" width="100" style="display: inline-block;"/>
+    <img src="./images/suno-app-7.png" width="100" style="display: inline-block;"/>
+  </div>
 
 ### TDD Initiative for Revenu Québec (Systematix, Canada)
 - **Type:** Backend Reliability
@@ -82,6 +93,17 @@ Full-stack engineer with 11+ years of experience across fintech, insurance, ERP,
 - **Type:** Business Systems
 - **Tech:** Java Swing, PostgreSQL
 - **Highlights:** Built inventory, payments, and sales management systems.
+- **Screenshots:**  
+
+  <div style="overflow-x: auto; white-space: nowrap;">
+    <img src="./images/java-market-1.webp" width="100" style="display: inline-block;"/>
+    <img src="./images/java-market-2.webp" width="100" style="display: inline-block;"/>
+    <img src="./images/java-market-3.webp" width="100" style="display: inline-block;"/>
+    <img src="./images/java-market-4.webp" width="100" style="display: inline-block;"/>
+    <img src="./images/java-market-5.webp" width="100" style="display: inline-block;"/>
+    <img src="./images/java-market-6.webp" width="100" style="display: inline-block;"/>
+    <img src="./images/java-market-7.webp" width="100" style="display: inline-block;"/>
+  </div>
 
 ---
 
