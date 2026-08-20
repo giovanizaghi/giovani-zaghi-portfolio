@@ -22,6 +22,12 @@ Full-stack engineer with 11+ years of experience across fintech, insurance, ERP,
 
 ## Featured Projects
 
+### Isometric RPG Game (Three.js)
+- **Type:** 3D Web Game
+- **Tech:** Vite, React Three Fiber, Three.js, TypeScript, Zustand
+- **Description:** Isometric RPG with an animated GLB character, camera follow, and typewriter-style NPC dialogues.
+- **Source:** [`game/`](./game)
+
 ### Status Invest Application
 - **Type:** Mobile App (React Native)
 - **Backend:** .NET Core, Redis Cache
