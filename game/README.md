@@ -19,6 +19,17 @@ npm run dev
 
 Abra http://localhost:5173
 
+## Deploy (Railway)
+
+O projeto está pronto para deploy como site estático na Railway (Railpack detecta o Vite e serve `dist/` com Caddy).
+
+1. Crie um novo projeto na Railway a partir deste repositório GitHub.
+2. Em **Settings → Source**, defina **Root Directory** como `game`.
+3. (Opcional) Em **Variables**, adicione `RAILPACK_SPA_OUTPUT_DIR=dist` caso a detecção automática falhe.
+4. Gere um domínio em **Settings → Networking → Generate Domain**.
+
+A configuração de build/deploy está em `railway.json`. O healthcheck responde em `/health`.
+
 ## Controles
 
 | Tecla | Ação |

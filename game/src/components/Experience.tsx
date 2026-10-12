@@ -1,19 +1,20 @@
 import { Suspense } from 'react'
 import { IsoCamera } from './IsoCamera'
-import { Ground } from './Ground'
+import { HomeScenario } from './HomeScenario'
+import { ForestScenario } from './ForestScenario'
 import { Player } from './Player'
-import { Npc } from './Npc'
+import { StaminaWheel } from './StaminaWheel'
 
 export function Experience() {
   return (
     <>
-      <color attach="background" args={['#0f1117']} />
-      <fog attach="fog" args={['#0f1117', 25, 45]} />
+      <color attach="background" args={['#9fc8d6']} />
 
-      <ambientLight intensity={0.6} />
+      <hemisphereLight args={['#dff4ff', '#7f9a68', 1.5]} />
+      <ambientLight intensity={1.2} />
       <directionalLight
         position={[8, 12, 4]}
-        intensity={1.4}
+        intensity={2.2}
         castShadow
         shadow-mapSize={[2048, 2048]}
         shadow-camera-left={-15}
@@ -22,15 +23,15 @@ export function Experience() {
         shadow-camera-bottom={-15}
       />
 
-      <IsoCamera />
-      <Ground />
+      <IsoCamera zoom={62} />
+      <HomeScenario />
+      <ForestScenario />
 
       <Suspense fallback={null}>
         <Player />
       </Suspense>
 
-      <Npc position={[3, 0, 2]} dialogueId="elder" color="#b5651d" />
-      <Npc position={[-4, 0, -2]} dialogueId="merchant" color="#4a7a9e" />
+      <StaminaWheel />
     </>
   )
 }

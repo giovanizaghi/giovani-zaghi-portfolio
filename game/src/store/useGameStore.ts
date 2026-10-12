@@ -19,6 +19,13 @@ interface GameStore {
   lineIndex: number
   /** Obstáculos que o player não pode atravessar */
   colliders: Collider[]
+  /** Vida atual e máxima (estilo Zelda) */
+  hearts: number
+  maxHearts: number
+  /** Stamina para correr, de 0 a 1 */
+  stamina: number
+  /** Skills coletadas (C#, Python, Design, etc.) */
+  skills: string[]
   setInteractTarget: (id: string | null) => void
   openDialogue: (npcId: string) => void
   /** Avança para a próxima fala; fecha o diálogo ao chegar no fim */
@@ -26,6 +33,10 @@ interface GameStore {
   closeDialogue: () => void
   registerCollider: (collider: Collider) => void
   unregisterCollider: (id: string) => void
+  addHeart: (amount?: number) => void
+  addStamina: (amount: number) => void
+  consumeStamina: (amount: number) => void
+  addSkill: (skill: string) => void
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -34,6 +45,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
   activeNpc: null,
   lineIndex: 0,
   colliders: [],
+  hearts: 3,
+  maxHearts: 5,
+  stamina: 1,
+  skills: [],
   setInteractTarget: (id) => {
     if (get().interactTarget !== id) set({ interactTarget: id })
   },
@@ -59,6 +74,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
   unregisterCollider: (id) => {
     set((state) => ({
       colliders: state.colliders.filter((c) => c.id !== id),
+    }))
+  },
+  addHeart: (amount = 1) => {
+    set((state) => ({ hearts: Math.min(state.maxHearts, state.hearts + amount) }))
+  },
+  addStamina: (amount) => {
+    set((state) => ({ stamina: Math.min(1, Math.max(0, state.stamina + amount)) }))
+  },
+  consumeStamina: (amount) => {
+    set((state) => ({ stamina: Math.max(0, state.stamina - amount) }))
+  },
+  addSkill: (skill) => {
+    set((state) => ({
+      skills: state.skills.includes(skill) ? state.skills : [...state.skills, skill],
     }))
   },
 }))

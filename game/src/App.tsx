@@ -2,6 +2,7 @@ import { Canvas } from '@react-three/fiber'
 import { KeyboardControls } from '@react-three/drei'
 import { Experience } from './components/Experience'
 import { DialogueBox } from './ui/DialogueBox'
+import { Hud } from './ui/Hud'
 import { InteractHint } from './ui/InteractHint'
 import { useInteractionKey } from './hooks/useInteractionKey'
 
@@ -20,9 +21,10 @@ export default function App() {
 
   return (
     <KeyboardControls map={keyMap}>
-      <Canvas shadows>
+      <Canvas flat>
         <Experience />
       </Canvas>
+      <Hud />
       <InteractHint />
       <DialogueBox />
     </KeyboardControls>

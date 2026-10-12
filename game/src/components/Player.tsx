@@ -22,6 +22,10 @@ const RUN_SPEED = 7.5
 const MODEL_SCALE = 1
 /** Raio do colisor do player */
 const PLAYER_RADIUS = 0.35
+/** Custo de stamina por segundo ao correr */
+const STAMINA_DRAIN = 0.9
+/** Recarga de stamina por segundo */
+const STAMINA_RECHARGE = 0.4
 
 interface MovementState {
   moving: boolean
@@ -156,7 +160,14 @@ export function Player() {
         .addScaledVector(tmp.right, inputX)
         .normalize()
 
-      movement.current.running = keys.run === true
+      const gameStore = useGameStore.getState()
+      const wantsToRun = keys.run === true && gameStore.stamina > 0
+      if (wantsToRun) {
+        gameStore.consumeStamina(STAMINA_DRAIN * delta)
+      } else {
+        gameStore.addStamina(STAMINA_RECHARGE * delta)
+      }
+      movement.current.running = wantsToRun
       const speed = (movement.current.running ? RUN_SPEED : WALK_SPEED) * delta
 
       // Verifica colisão eixo a eixo para permitir deslizar nas paredes
@@ -176,6 +187,7 @@ export function Player() {
     } else {
       movement.current.moving = false
       movement.current.running = false
+      useGameStore.getState().addStamina(STAMINA_RECHARGE * delta)
     }
 
     // Compartilha a posição (mutação do mesmo Vector3 — sem re-render)
