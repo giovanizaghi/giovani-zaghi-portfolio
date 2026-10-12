@@ -21,14 +21,16 @@ Abra http://localhost:5173
 
 ## Deploy (Railway)
 
-O projeto está pronto para deploy como site estático na Railway (Railpack detecta o Vite e serve `dist/` com Caddy).
+**Live:** https://game-production-20f4.up.railway.app
 
-1. Crie um novo projeto na Railway a partir deste repositório GitHub.
-2. Em **Settings → Source**, defina **Root Directory** como `game`.
-3. (Opcional) Em **Variables**, adicione `RAILPACK_SPA_OUTPUT_DIR=dist` caso a detecção automática falhe.
-4. Gere um domínio em **Settings → Networking → Generate Domain**.
+Deploy como site estático na Railway (Railpack detecta o Vite e serve `dist/` com Caddy). Cada push na `main` dispara um novo deploy.
 
-A configuração de build/deploy está em `railway.json`. O healthcheck responde em `/health`.
+Configuração do serviço (feita no painel/API, não em arquivo — `railway.json` foi descontinuado pela Railway):
+
+- **Root Directory:** `game`
+- **Variável:** `RAILPACK_SPA_OUTPUT_DIR=dist`
+- **Healthcheck:** `/health` (respondido pelo Caddy do Railpack)
+- **Restart policy:** ON_FAILURE, 3 tentativas
 
 ## Controles
 

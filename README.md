@@ -24,7 +24,7 @@ Full-stack engineer with 11+ years of experience across fintech, insurance, ERP,
 
 ### Isometric RPG Game (Three.js)
 - **Type:** 3D Web Game
-- **Live demo:** _em breve (Railway)_
+- **Live demo:** [game-production-20f4.up.railway.app](https://game-production-20f4.up.railway.app)
 - **Tech:** Vite, React Three Fiber, Three.js, TypeScript, Zustand
 - **Description:** Isometric RPG with an animated GLB character, camera follow, typewriter-style NPC dialogues, a hearts/stamina HUD, and house + forest scenarios.
 - **Source:** [`game/`](./game)
