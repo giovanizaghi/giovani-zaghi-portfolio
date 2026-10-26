@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
+import { Group } from 'three'
 import { useGameStore } from '../store/useGameStore'
 
 interface CoffeeCupProps {
@@ -9,29 +10,31 @@ interface CoffeeCupProps {
 const PICKUP_RADIUS = 0.9
 
 export function CoffeeCup({ position }: CoffeeCupProps) {
-  const [collected, setCollected] = useState(false)
-  const [yOffset, setYOffset] = useState(0)
+  // Id estável por posição — o café não volta após coletado (save de mundo)
+  const id = `coffee:${position[0]},${position[2]}`
+  const consumed = useGameStore((s) => s.consumedEntities[id] === true)
+  const group = useRef<Group>(null!)
+  const angle = useRef(Math.random() * Math.PI * 2)
 
   useFrame((_, delta) => {
-    if (collected) return
-    setYOffset((prev) => prev + delta * 2.5)
-    const playerPos = useGameStore.getState().playerPosition
-    const dx = playerPos.x - position[0]
-    const dz = playerPos.z - position[2]
+    if (consumed || !group.current) return
+    angle.current += delta * 2.5
+    group.current.position.y = position[1] + Math.sin(angle.current) * 0.08
+
+    const store = useGameStore.getState()
+    const dx = store.playerPosition.x - position[0]
+    const dz = store.playerPosition.z - position[2]
     if (dx * dx + dz * dz < PICKUP_RADIUS * PICKUP_RADIUS) {
-      setCollected(true)
-      const store = useGameStore.getState()
+      store.consumeEntity(id)
       store.addHeart(1)
       store.addStamina(0.4)
     }
   })
 
-  if (collected) return null
-
-  const y = position[1] + Math.sin(yOffset) * 0.08
+  if (consumed) return null
 
   return (
-    <group position={[position[0], y, position[2]]}>
+    <group ref={group} position={[position[0], position[1], position[2]]}>
       <mesh rotation-x={Math.PI * 0.5}>
         <cylinderGeometry args={[0.18, 0.18, 0.32, 12]} />
         <meshBasicMaterial color="#5c4033" />

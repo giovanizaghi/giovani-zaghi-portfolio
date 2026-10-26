@@ -42,7 +42,12 @@ const roomLabels = [
   { name: 'KITCHEN', position: [5.7, 0.12, -0.8] as [number, number, number] },
 ]
 
-const colliderPoints = walls.flatMap((wall, wallIndex) => {
+/** Parede invisível no vão da porta — a saída é via E/clique no trigger */
+const doorThreshold: Block = { position: [4.5, 0.2, 6], size: [3, 0.4, 0.3], color: '' }
+
+const colliderWalls = [...walls, doorThreshold]
+
+const colliderPoints = colliderWalls.flatMap((wall, wallIndex) => {
   const horizontal = wall.size[0] > wall.size[2]
   const length = horizontal ? wall.size[0] : wall.size[2]
   const count = Math.ceil(length / 0.55)
@@ -60,6 +65,46 @@ const colliderPoints = walls.flatMap((wall, wallIndex) => {
   })
 })
 
+const EXIT_DOOR = {
+  position: new Vector3(4.5, 0, 4.8),
+  radius: 1.4,
+  spawn: [4.5, 0, 8.5] as [number, number, number],
+}
+
+/** Trigger para sair da casa (E ou clique no anel) */
+function ExitDoorTrigger() {
+  const wasNear = useRef(false)
+
+  useFrame(() => {
+    const { playerPosition, setInteractDoor } = useGameStore.getState()
+    const near = playerPosition.distanceTo(EXIT_DOOR.position) < EXIT_DOOR.radius
+    if (near !== wasNear.current) {
+      wasNear.current = near
+      setInteractDoor(
+        near ? { label: 'Sair de casa', scene: 'outside', spawn: EXIT_DOOR.spawn } : null
+      )
+    }
+  })
+
+  const tryExit = () => {
+    const { playerPosition, enterScene } = useGameStore.getState()
+    if (playerPosition.distanceTo(EXIT_DOOR.position) < EXIT_DOOR.radius) {
+      enterScene('outside', EXIT_DOOR.spawn)
+    }
+  }
+
+  return (
+    <mesh
+      rotation-x={-Math.PI / 2}
+      position={[EXIT_DOOR.position.x, 0.03, EXIT_DOOR.position.z]}
+      onClick={tryExit}
+    >
+      <ringGeometry args={[EXIT_DOOR.radius - 0.06, EXIT_DOOR.radius, 32]} />
+      <meshBasicMaterial color="#e8c170" transparent opacity={0.35} />
+    </mesh>
+  )
+}
+
 function JourneyIntroTrigger() {
   const triggered = useRef(false)
 
@@ -75,6 +120,7 @@ function JourneyIntroTrigger() {
   return null
 }
 
+/** Cena do interior da casa — montada quando scene === 'house' */
 export function HomeScenario() {
   useEffect(() => {
     const { registerCollider, unregisterCollider } = useGameStore.getState()
@@ -85,17 +131,11 @@ export function HomeScenario() {
   return (
     <group>
       <JourneyIntroTrigger />
+      <ExitDoorTrigger />
+
       <mesh position={[0, -0.12, 0]} receiveShadow>
         <boxGeometry args={[16, 0.24, 12]} />
         <meshBasicMaterial color="#b98757" />
-      </mesh>
-      <mesh position={[0, -0.2, 12]} receiveShadow>
-        <boxGeometry args={[30, 0.2, 12]} />
-        <meshBasicMaterial color="#496948" />
-      </mesh>
-      <mesh position={[4.2, -0.06, 8.7]} rotation-y={-0.18} receiveShadow>
-        <boxGeometry args={[2.2, 0.12, 6]} />
-        <meshBasicMaterial color="#c6aa7b" />
       </mesh>
 
       {walls.map((block, index) => (
@@ -111,10 +151,12 @@ export function HomeScenario() {
         </mesh>
       ))}
 
+      {/* Batente sobre o vão da porta (lado de dentro) */}
       <mesh position={[4, 1.45, 5.92]}>
         <boxGeometry args={[2, 0.18, 0.18]} />
         <meshBasicMaterial color="#e8c170" />
       </mesh>
+
       {roomLabels.map((room) => (
         <Html key={room.name} position={room.position} center distanceFactor={18} rotation={[-Math.PI / 2, 0, 0]} transform>
           <div className="room-label">{room.name}</div>

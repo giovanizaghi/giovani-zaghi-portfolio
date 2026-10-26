@@ -1,11 +1,19 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { Suspense, useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { Vector3 } from 'three'
+import { Clone, useGLTF } from '@react-three/drei'
+import { Box3, Vector3 } from 'three'
 import { useGameStore } from '../store/useGameStore'
 import { CoffeeCup } from './CoffeeCup'
 import { LockedGate } from './LockedGate'
+import { ItemPickup } from './ItemPickup'
+import { Coin } from './Coin'
+import { Crawler } from './Crawler'
 
-const TREE_COLORS = ['#3d5c3a', '#486b3f', '#385233']
+const TREE_MODELS = {
+  deciduous: '/assets/models/meshy_tree_deciduous.glb',
+  pine: '/assets/models/meshy_tree_pine.glb',
+} as const
+
 const STONE_COLORS = ['#7a7a7a', '#8b8b8b', '#6e6e6e']
 
 function ForestExitTrigger() {
@@ -24,29 +32,49 @@ function ForestExitTrigger() {
   return null
 }
 
-function createTree(x: number, z: number, scale = 1) {
-  return {
-    position: [x, 0.7 * scale, z] as [number, number, number],
-    trunk: [0.35 * scale, 1.4 * scale, 0.35 * scale] as [number, number, number],
-    leaves: [1.3 * scale, 1.4 * scale, 1.3 * scale] as [number, number, number],
-    color: TREE_COLORS[Math.floor(Math.abs(x + z * 7) % TREE_COLORS.length)],
-  }
+/** Árvore GLB normalizada: `height` é a altura final em unidades do mundo,
+ *  com a base do modelo apoiada no chão (y = 0) */
+function Tree({ model, height, x, z }: { model: keyof typeof TREE_MODELS; height: number; x: number; z: number }) {
+  const { scene } = useGLTF(TREE_MODELS[model])
+
+  const { scale, offsetY } = useMemo(() => {
+    scene.traverse((obj) => {
+      obj.castShadow = true
+      obj.receiveShadow = true
+    })
+    const box = new Box3().setFromObject(scene)
+    const s = height / box.getSize(new Vector3()).y
+    return { scale: s, offsetY: -box.min.y * s }
+  }, [scene, height])
+
+  // Rotação determinística por posição para variar os clones
+  const rotation = useMemo(() => ((x * 7 + z * 13) % 360) * (Math.PI / 180), [x, z])
+
+  return (
+    <group position={[x, 0, z]} rotation-y={rotation}>
+      <Clone object={scene} scale={scale} position-y={offsetY} />
+    </group>
+  )
+}
+
+function createTree(x: number, z: number, scale = 1, model: keyof typeof TREE_MODELS = 'deciduous') {
+  return { x, z, height: 2.3 * scale, model }
 }
 
 const trees = [
-  createTree(-10, 15, 1.2),
+  createTree(-10, 15, 1.2, 'pine'),
   createTree(-13, 18, 0.9),
-  createTree(-8, 22, 1.1),
+  createTree(-8, 22, 1.1, 'pine'),
   createTree(-15, 24, 1.3),
-  createTree(-6, 28, 0.8),
+  createTree(-6, 28, 0.8, 'pine'),
   createTree(10, 16, 1.1),
-  createTree(14, 19, 1.0),
+  createTree(14, 19, 1.0, 'pine'),
   createTree(9, 23, 1.2),
-  createTree(16, 26, 0.9),
+  createTree(16, 26, 0.9, 'pine'),
   createTree(11, 30, 1.1),
-  createTree(-5, 35, 1.0),
+  createTree(-5, 35, 1.0, 'pine'),
   createTree(6, 36, 1.2),
-  createTree(-11, 40, 0.9),
+  createTree(-11, 40, 0.9, 'pine'),
   createTree(13, 42, 1.1),
 ]
 
@@ -74,8 +102,8 @@ const altars = [
 const colliders = [
   ...trees.map((tree, index) => ({
     id: `forest-tree-${index}`,
-    position: new Vector3(tree.position[0], 0, tree.position[2]),
-    radius: tree.leaves[0] * 0.5,
+    position: new Vector3(tree.x, 0, tree.z),
+    radius: tree.height * 0.28,
   })),
   ...stones.map((stone, index) => ({
     id: `forest-stone-${index}`,
@@ -111,18 +139,11 @@ export function ForestScenario() {
         </mesh>
       ))}
 
-      {trees.map((tree, index) => (
-        <group key={`tree-${index}`} position={tree.position}>
-          <mesh position={[0, -0.2, 0]} castShadow>
-            <boxGeometry args={tree.trunk} />
-            <meshBasicMaterial color="#5c4033" />
-          </mesh>
-          <mesh position={[0, 0.5, 0]} castShadow>
-            <boxGeometry args={tree.leaves} />
-            <meshBasicMaterial color={tree.color} />
-          </mesh>
-        </group>
-      ))}
+      <Suspense fallback={null}>
+        {trees.map((tree, index) => (
+          <Tree key={`tree-${index}`} model={tree.model} height={tree.height} x={tree.x} z={tree.z} />
+        ))}
+      </Suspense>
 
       {stones.map((stone, index) => (
         <mesh key={`stone-${index}`} position={stone.position} castShadow>
@@ -148,9 +169,30 @@ export function ForestScenario() {
       <CoffeeCup position={[-2.2, 0.55, 25]} />
       <CoffeeCup position={[1.8, 0.55, 34]} />
 
+      <ItemPickup position={[3.5, 0.6, 18]} item="java" />
+      <ItemPickup position={[-3.4, 0.6, 26]} item="csharp" />
+      <ItemPickup position={[2.6, 0.6, 36]} item="javascript" />
+      <ItemPickup position={[-1.5, 0.6, 21]} item="python" />
+
+      <Coin position={[1.2, 0.5, 19]} />
+      <Coin position={[-0.8, 0.5, 23]} />
+      <Coin position={[3.8, 0.5, 28]} />
+      <Coin position={[-2.8, 0.5, 31]} />
+      <Coin position={[0.5, 0.5, 38]} />
+      <Coin position={[-4.2, 0.5, 40]} />
+
+      <Crawler position={[3.2, 0, 24]} />
+      <Crawler position={[-4, 0, 31]} />
+      <Crawler position={[-5.5, 0, 33]} />
+      <Crawler position={[2.4, 0, 39]} />
+      <Crawler position={[4, 0, 41]} />
+
       <LockedGate position={[-5, 1.1, 44]} skill="csharp" color="#5e9bd4" />
       <LockedGate position={[5, 1.1, 44]} skill="python" color="#d46b5e" />
       <LockedGate position={[0, 1.1, 50]} skill="design" color="#6b5ed4" />
     </group>
   )
 }
+
+useGLTF.preload(TREE_MODELS.deciduous)
+useGLTF.preload(TREE_MODELS.pine)

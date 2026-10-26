@@ -3,14 +3,15 @@ import type { ReactNode, RefObject } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useAnimations, useGLTF, useKeyboardControls } from '@react-three/drei'
 import { Group, Vector3 } from 'three'
-import { useGameStore } from '../store/useGameStore'
+import { useGameStore, getEffectiveStats } from '../store/useGameStore'
 import type { MovementKey } from '../App'
 
 /** Modelo base (sem animações) */
-const MODEL_URL = '/assets/models/Meshy_AI_Meshy_AI_Blond_Minima_biped_Character_output.glb'
+export const MODEL_URL =
+  '/assets/models/Meshy_AI_Meshy_AI_Blond_Minima_biped_Character_output.glb'
 
 /** GLBs separados contendo um clip de animação cada (mesma rig do modelo base) */
-const ANIMATION_URLS = {
+export const ANIMATION_URLS = {
   idle: '/assets/models/Meshy_AI_Meshy_AI_Blond_Minima_biped_Animation_Idle_02_withSkin.glb',
   walk: '/assets/models/Meshy_AI_Meshy_AI_Blond_Minima_biped_Animation_Walking_withSkin.glb',
   run: '/assets/models/Meshy_AI_Meshy_AI_Blond_Minima_biped_Animation_Running_withSkin.glb',
@@ -26,6 +27,8 @@ const PLAYER_RADIUS = 0.35
 const STAMINA_DRAIN = 0.9
 /** Recarga de stamina por segundo */
 const STAMINA_RECHARGE = 0.4
+/** Stamina precisa chegar a este valor para poder correr de novo após esgotar */
+const STAMINA_RESUME = 1
 
 interface MovementState {
   moving: boolean
@@ -120,6 +123,7 @@ class ModelErrorBoundary extends Component<{ children: ReactNode }, { failed: bo
 export function Player() {
   const group = useRef<Group>(null!)
   const movement = useRef<MovementState>({ moving: false, running: false })
+  const exhausted = useRef(false)
   const [, getKeys] = useKeyboardControls<MovementKey>()
 
   // Vetores temporários (evita alocação por frame)
@@ -141,13 +145,40 @@ export function Player() {
 
   useFrame((state, delta) => {
     const pos = group.current.position
-    const dialogueOpen = useGameStore.getState().activeNpc !== null
+    const gameStore = useGameStore.getState()
+
+    if (gameStore.pendingSpawn) {
+      pos.copy(gameStore.pendingSpawn)
+      gameStore.clearPendingSpawn()
+    }
+
+    // Anti-stuck: se spawnou dentro de um colisor (save corrompido etc.),
+    // empurra pra fora na direção mais próxima da superfície
+    for (const c of gameStore.colliders) {
+      const dx = pos.x - c.position.x
+      const dz = pos.z - c.position.z
+      const minDist = PLAYER_RADIUS + c.radius
+      const d2 = dx * dx + dz * dz
+      if (d2 < minDist * minDist) {
+        const d = Math.sqrt(d2)
+        if (d < 1e-4) {
+          pos.x = c.position.x + minDist
+        } else {
+          pos.x = c.position.x + (dx / d) * minDist
+          pos.z = c.position.z + (dz / d) * minDist
+        }
+      }
+    }
+
+    const inputBlocked =
+      gameStore.activeNpc !== null || gameStore.menuOpen || gameStore.gameOver
 
     const keys = getKeys()
     const inputX = (keys.right ? 1 : 0) - (keys.left ? 1 : 0)
     const inputY = (keys.forward ? 1 : 0) - (keys.back ? 1 : 0)
+    const stats = getEffectiveStats()
 
-    if (!dialogueOpen && (inputX !== 0 || inputY !== 0)) {
+    if (!inputBlocked && (inputX !== 0 || inputY !== 0)) {
       // Direção relativa à câmera isométrica (projetada no plano XZ)
       state.camera.getWorldDirection(tmp.forward)
       tmp.forward.y = 0
@@ -160,15 +191,17 @@ export function Player() {
         .addScaledVector(tmp.right, inputX)
         .normalize()
 
-      const gameStore = useGameStore.getState()
-      const wantsToRun = keys.run === true && gameStore.stamina > 0
+      if (gameStore.stamina <= 0) exhausted.current = true
+      else if (gameStore.stamina >= STAMINA_RESUME) exhausted.current = false
+      const wantsToRun = keys.run === true && !exhausted.current
       if (wantsToRun) {
         gameStore.consumeStamina(STAMINA_DRAIN * delta)
       } else {
-        gameStore.addStamina(STAMINA_RECHARGE * delta)
+        gameStore.addStamina(STAMINA_RECHARGE * stats.staminaRegen * delta)
       }
       movement.current.running = wantsToRun
-      const speed = (movement.current.running ? RUN_SPEED : WALK_SPEED) * delta
+      const speed =
+        (movement.current.running ? RUN_SPEED : WALK_SPEED) * stats.moveSpeed * delta
 
       // Verifica colisão eixo a eixo para permitir deslizar nas paredes
       tmp.next.set(pos.x + tmp.dir.x * speed, 0, pos.z)
@@ -187,15 +220,21 @@ export function Player() {
     } else {
       movement.current.moving = false
       movement.current.running = false
-      useGameStore.getState().addStamina(STAMINA_RECHARGE * delta)
+      useGameStore.getState().addStamina(STAMINA_RECHARGE * stats.staminaRegen * delta)
     }
 
-    // Compartilha a posição (mutação do mesmo Vector3 — sem re-render)
+    // Compartilha posição, direção e nível de ruído — sem re-render
+    useGameStore
+      .getState()
+      .setPlayerNoise(movement.current.running, movement.current.moving)
     useGameStore.getState().playerPosition.copy(pos)
+    useGameStore
+      .getState()
+      .playerDirection.set(Math.sin(group.current.rotation.y), 0, Math.cos(group.current.rotation.y))
   })
 
   return (
-    <group ref={group}>
+    <group ref={group} position={[4.5, 0, 8.5]}>
       <ModelErrorBoundary>
         <Suspense fallback={<CharacterPlaceholder />}>
           <CharacterModel movement={movement} />

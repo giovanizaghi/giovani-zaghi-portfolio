@@ -1,0 +1,6 @@
+services:
+  game:
+    build: .
+    ports:
+      - "8081:80"
+    restart: unless-stopped

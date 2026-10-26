@@ -1,11 +1,18 @@
 import { Suspense } from 'react'
 import { IsoCamera } from './IsoCamera'
 import { HomeScenario } from './HomeScenario'
+import { HouseExterior } from './HouseExterior'
 import { ForestScenario } from './ForestScenario'
 import { Player } from './Player'
+import { Companion } from './Companion'
+import { ItemEffects } from './ItemEffects'
+import { BinaryParticles } from '../fx/particles'
 import { StaminaWheel } from './StaminaWheel'
+import { useGameStore } from '../store/useGameStore'
 
 export function Experience() {
+  const scene = useGameStore((s) => s.scene)
+
   return (
     <>
       <color attach="background" args={['#9fc8d6']} />
@@ -24,12 +31,23 @@ export function Experience() {
       />
 
       <IsoCamera zoom={62} />
-      <HomeScenario />
-      <ForestScenario />
+
+      {scene === 'outside' ? (
+        <>
+          <HouseExterior />
+          <ForestScenario />
+        </>
+      ) : (
+        <HomeScenario />
+      )}
 
       <Suspense fallback={null}>
         <Player />
+        <Companion />
       </Suspense>
+
+      <ItemEffects />
+      <BinaryParticles />
 
       <StaminaWheel />
     </>

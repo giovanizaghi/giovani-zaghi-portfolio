@@ -8,8 +8,18 @@ import { useGameStore } from '../store/useGameStore'
 export function useInteractionKey() {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      const { activeNpc, interactTarget, openDialogue, advanceDialogue, closeDialogue } =
-        useGameStore.getState()
+      const {
+        activeNpc,
+        interactTarget,
+        interactDoor,
+        openDialogue,
+        advanceDialogue,
+        closeDialogue,
+        enterScene,
+        gameOver,
+      } = useGameStore.getState()
+
+      if (gameOver) return
 
       if (e.code === 'Escape' && activeNpc) {
         closeDialogue()
@@ -19,6 +29,8 @@ export function useInteractionKey() {
       if (e.code !== 'KeyE') return
       if (activeNpc) {
         advanceDialogue()
+      } else if (interactDoor) {
+        enterScene(interactDoor.scene, interactDoor.spawn)
       } else if (interactTarget) {
         openDialogue(interactTarget)
       }
