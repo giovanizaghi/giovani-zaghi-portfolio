@@ -15,6 +15,7 @@ import {
   alertAllEnemies,
   damagePlayer,
   registerEnemy,
+  separateEnemy,
   setInCombat,
 } from '../store/enemyRegistry'
 import type { EnemyHit } from '../store/enemyRegistry'
@@ -405,8 +406,14 @@ export function Crawler({ position }: CrawlerProps) {
   useFrame((state, delta) => {
     if (ctx.dead) return
     const store = useGameStore.getState()
-    // IA pausada junto com o player (diálogo/menu/game over)
-    if (store.activeNpc !== null || store.menuOpen || store.gameOver) return
+    // IA pausada junto com o player (diálogo/menu/level-up/game over)
+    if (
+      store.activeNpc !== null ||
+      store.menuOpen ||
+      store.gameOver ||
+      store.pendingLevelUps > 0
+    )
+      return
 
     // ---- Percepção: contexto que os estados leem ----
     ctx.delta = delta
@@ -443,6 +450,9 @@ export function Crawler({ position }: CrawlerProps) {
         vp.z = c.position.z + (dz / d) * min
       }
     }
+
+    // ---- Não atravessa outros inimigos (separação de horda) ----
+    separateEnemy(registryId, vp, BODY_RADIUS)
 
     pos3.set(vp.x, ctx.jumpY, vp.z)
 

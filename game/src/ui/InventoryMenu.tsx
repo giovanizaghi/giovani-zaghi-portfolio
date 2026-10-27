@@ -76,6 +76,7 @@ export function InventoryMenu() {
           </span>
           <span title="Dano por projétil">⚔ {stats.damage.toFixed(1)}</span>
           <span title="Ataques por segundo">⚡ {stats.attackSpeed.toFixed(1)}/s</span>
+          <span title="Projéteis por ataque">» ×{stats.projectiles}</span>
           <span className="menu-coins">● {coins}</span>
         </div>
       </div>

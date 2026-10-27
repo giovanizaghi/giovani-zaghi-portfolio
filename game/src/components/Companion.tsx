@@ -3,7 +3,8 @@ import { useFrame } from '@react-three/fiber'
 import { useKeyboardControls } from '@react-three/drei'
 import { AdditiveBlending, CanvasTexture, Group, Vector3 } from 'three'
 import { useGameStore, getEffectiveStats } from '../store/useGameStore'
-import { forEachEnemy } from '../store/enemyRegistry'
+import { MAX_PROJECTILES } from '../data/stats'
+import { forEachEnemy, nearestEnemy } from '../store/enemyRegistry'
 import { emitBinary, burstBinary } from '../fx/particles'
 import type { MovementKey } from '../App'
 
@@ -17,11 +18,18 @@ const ORB_BOB_SPEED = 2.4
 const PROJECTILE_SPEED = 11
 const PROJECTILE_LIFE = 0.85
 const PROJECTILE_RADIUS = 0.2
-const MAX_PROJECTILES = 5
+/** Ângulo entre cada projétil do leque em tiros múltiplos (~10°) */
+const SPREAD_STEP = 0.18
 /** Dígitos emitidos por segundo enquanto o projétil voa */
 const TRAIL_RATE = 110
 /** Intervalo entre "faíscas" idle que o orbe solta */
 const MOTE_INTERVAL = 0.14
+/** Distância em que o projétil começa a curvar atrás de um inimigo */
+const HOMING_RANGE = 7
+/** Rapidez da curva do projétil (maior = gruda mais no alvo) */
+const HOMING_TURN = 5
+/** Altura mínima do ponto de mira — não enterra o tiro no chão atrás de rastejantes */
+const MIN_AIM_Y = 0.5
 
 /** Gradiente radial usado nos sprites de brilho do orbe */
 function createGlowTexture() {
@@ -80,7 +88,15 @@ export function Companion() {
     []
   )
 
-  const tmp = useMemo(() => ({ target: new Vector3() }), [])
+  const tmp = useMemo(
+    () => ({
+      target: new Vector3(),
+      aim: new Vector3(),
+      shotDir: new Vector3(),
+      up: new Vector3(0, 1, 0),
+    }),
+    []
+  )
 
   const spawnProjectile = (origin: Vector3, dir: Vector3) => {
     const p = projectiles.find((p) => !p.active)
@@ -98,8 +114,15 @@ export function Companion() {
   useFrame((state, delta) => {
     const t = state.clock.elapsedTime
     const gameStore = useGameStore.getState()
-    const { playerPosition, playerDirection, colliders, activeNpc, menuOpen, gameOver } =
-      gameStore
+    const {
+      playerPosition,
+      playerDirection,
+      colliders,
+      activeNpc,
+      menuOpen,
+      gameOver,
+      pendingLevelUps,
+    } = gameStore
 
     // ---- Orbe: órbita lenta + bob + lag de mola ao seguir o player ----
     orbitAngle.current += delta * ORB_ORBIT_SPEED
@@ -123,11 +146,19 @@ export function Companion() {
       cooldown.current <= 0 &&
       !activeNpc &&
       !menuOpen &&
-      !gameOver
+      !gameOver &&
+      pendingLevelUps === 0
     ) {
-      cooldown.current = 1 / getEffectiveStats().attackSpeed
+      const stats = getEffectiveStats()
+      cooldown.current = 1 / stats.attackSpeed
       attackPulse.current = 1
-      spawnProjectile(orb.current.position, playerDirection)
+      // Tiro adicional: leque simétrico em volta da direção do player
+      const shots = Math.min(stats.projectiles, MAX_PROJECTILES)
+      for (let i = 0; i < shots; i++) {
+        const offset = (i - (shots - 1) / 2) * SPREAD_STEP
+        tmp.shotDir.copy(playerDirection).applyAxisAngle(tmp.up, offset)
+        spawnProjectile(orb.current.position, tmp.shotDir)
+      }
       burstBinary(orb.current.position.x, orb.current.position.y, orb.current.position.z, 8, 1.2)
     }
     wasAttack.current = attackDown
@@ -151,6 +182,15 @@ export function Companion() {
     for (const p of projectiles) {
       if (!p.active) continue
       p.age += delta
+
+      // Homing: curva em direção ao inimigo mais próximo — alcança voadores em altura
+      const target = nearestEnemy(p.pos, HOMING_RANGE)
+      if (target) {
+        tmp.aim.copy(target.position)
+        tmp.aim.y = Math.max(tmp.aim.y, MIN_AIM_Y)
+        tmp.aim.sub(p.pos).normalize()
+        p.dir.lerp(tmp.aim, 1 - Math.exp(-HOMING_TURN * delta)).normalize()
+      }
       p.pos.addScaledVector(p.dir, PROJECTILE_SPEED * delta)
 
       let hit = p.age >= PROJECTILE_LIFE

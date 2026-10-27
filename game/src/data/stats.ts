@@ -10,12 +10,20 @@
  * nem linear (níveis tardios triviais) nem exponencial pura (parede).
  */
 
+/** Nível máximo do personagem — a barra de XP trava cheia ao atingi-lo */
+export const MAX_LEVEL = 20
+
+/** Máximo de projéteis por ataque (também limita o pool visual do orbe) */
+export const MAX_PROJECTILES = 5
+
 /** Stats que definem o poder do personagem */
 export interface StatBlock {
   /** Dano base de cada projétil do orbe */
   damage: number
   /** Ataques por segundo (cooldown = 1 / attackSpeed) */
   attackSpeed: number
+  /** Projéteis disparados por ataque (leque) */
+  projectiles: number
   /** Multiplicador de velocidade de movimento */
   moveSpeed: number
   /** Chance de crítico (0–1) */
@@ -36,6 +44,7 @@ export interface StatBlock {
 export const BASE_STATS: StatBlock = {
   damage: 1,
   attackSpeed: 2.5, // cooldown 0.4s — mesmo do ATTACK_COOLDOWN original
+  projectiles: 1,
   moveSpeed: 1,
   critChance: 0.05,
   critDamage: 1.5,
@@ -49,6 +58,7 @@ export const BASE_STATS: StatBlock = {
 export const EMPTY_BONUSES: StatBlock = {
   damage: 0,
   attackSpeed: 0,
+  projectiles: 0,
   moveSpeed: 0,
   critChance: 0,
   critDamage: 0,
@@ -77,6 +87,10 @@ export function deriveStats(level: number, bonuses: StatBlock): StatBlock {
     attackSpeed:
       BASE_STATS.attackSpeed * (1 + ATTACK_SPEED_GROWTH * (level - 1)) +
       bonuses.attackSpeed,
+    projectiles: Math.min(
+      MAX_PROJECTILES,
+      Math.round(BASE_STATS.projectiles + bonuses.projectiles)
+    ),
     moveSpeed:
       BASE_STATS.moveSpeed * (1 + MOVE_SPEED_GROWTH * (level - 1)) + bonuses.moveSpeed,
     critChance:
@@ -107,6 +121,46 @@ export function applyBuffs(stats: StatBlock, buffs: Buff[]): StatBlock {
   for (const b of active) out[b.stat] += b.amount
   return out
 }
+
+/**
+ * Upgrades oferecidos na tela de level-up — cada nível concede 1 escolha.
+ * `amount` é somado ao bônus flat do stat correspondente.
+ */
+export interface LevelUpOption {
+  id: 'attackSpeed' | 'damage' | 'projectiles'
+  stat: keyof StatBlock
+  amount: number
+  icon: string
+  name: string
+  description: string
+}
+
+export const LEVEL_UP_OPTIONS: LevelUpOption[] = [
+  {
+    id: 'attackSpeed',
+    stat: 'attackSpeed',
+    amount: 0.35,
+    icon: '⚡',
+    name: 'Velocidade de Ataque',
+    description: 'Ataca mais rápido (menor cooldown entre disparos)',
+  },
+  {
+    id: 'damage',
+    stat: 'damage',
+    amount: 0.5,
+    icon: '⚔',
+    name: 'Dano',
+    description: 'Cada projétil causa mais dano',
+  },
+  {
+    id: 'projectiles',
+    stat: 'projectiles',
+    amount: 1,
+    icon: '»',
+    name: 'Tiro Adicional',
+    description: 'Dispara um projétil a mais por ataque, em leque',
+  },
+]
 
 /**
  * Scaling de inimigos em relação ao nível do player.

@@ -8,6 +8,7 @@ import { LockedGate } from './LockedGate'
 import { ItemPickup } from './ItemPickup'
 import { Coin } from './Coin'
 import { Crawler } from './Crawler'
+import { Flyer } from './Flyer'
 
 const TREE_MODELS = {
   deciduous: '/assets/models/meshy_tree_deciduous.glb',
@@ -186,6 +187,10 @@ export function ForestScenario() {
       <Crawler position={[-5.5, 0, 33]} />
       <Crawler position={[2.4, 0, 39]} />
       <Crawler position={[4, 0, 41]} />
+
+      <Flyer position={[0.5, 0, 27]} />
+      <Flyer position={[-4.5, 0, 37]} />
+      <Flyer position={[3.5, 0, 35]} />
 
       <LockedGate position={[-5, 1.1, 44]} skill="csharp" color="#5e9bd4" />
       <LockedGate position={[5, 1.1, 44]} skill="python" color="#d46b5e" />

@@ -650,6 +650,137 @@ body,
   font-size: 12px;
 }
 
+/* ---------- Tela de level-up (escolha de upgrade) ---------- */
+
+.levelup {
+  position: fixed;
+  inset: 0;
+  z-index: 65;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: radial-gradient(ellipse at center, rgba(8, 18, 30, 0.88), rgba(4, 8, 14, 0.96));
+  animation: menu-fade-in 0.2s ease-out;
+}
+
+.levelup-title {
+  font-size: clamp(36px, 7vw, 64px);
+  font-weight: bold;
+  letter-spacing: 8px;
+  color: #9fdcff;
+  text-shadow:
+    0 0 28px rgba(77, 184, 255, 0.6),
+    0 4px 0 #143a52;
+  animation: gameover-drop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+.levelup-sub {
+  color: rgba(234, 247, 255, 0.8);
+  font-size: 15px;
+}
+
+.levelup-remaining {
+  color: #f5c542;
+  font-weight: bold;
+}
+
+.levelup-cards {
+  display: flex;
+  gap: 16px;
+  margin-top: 18px;
+  padding: 0 24px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.levelup-card {
+  position: relative;
+  width: 190px;
+  min-height: 200px;
+  padding: 22px 16px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid rgba(159, 220, 255, 0.35);
+  border-radius: 12px;
+  color: #eaf7ff;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    transform 0.12s,
+    border-color 0.12s,
+    background 0.12s,
+    box-shadow 0.12s;
+}
+
+.levelup-card:hover:not(:disabled) {
+  transform: translateY(-5px);
+  border-color: #9fdcff;
+  background: rgba(159, 220, 255, 0.14);
+  box-shadow: 0 0 22px rgba(77, 184, 255, 0.35);
+}
+
+.levelup-card:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.levelup-key {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
+.levelup-rank {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font-size: 11px;
+  font-weight: bold;
+  color: #f5c542;
+}
+
+.levelup-icon {
+  font-size: 34px;
+  font-weight: bold;
+  color: #9fdcff;
+  text-shadow: 0 0 14px rgba(77, 184, 255, 0.6);
+}
+
+.levelup-name {
+  font-size: 15px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  text-align: center;
+}
+
+.levelup-desc {
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(234, 247, 255, 0.7);
+  text-align: center;
+  flex: 1;
+}
+
+.levelup-value {
+  font-size: 14px;
+  font-weight: bold;
+  color: #8bc34a;
+}
+
+.levelup-arrow {
+  color: rgba(255, 255, 255, 0.5);
+}
+
 /* ---------- Marcadores de inimigo (? suspeita / ! alerta) ---------- */
 
 .enemy-mark {
@@ -737,4 +868,83 @@ body,
   font-weight: bold;
   white-space: nowrap;
   transform: translateY(-100%);
+}
+
+/* ---------- Lua de Sangue (reset de mundo, canto inferior esquerdo) ---------- */
+
+.blood-moon {
+  position: fixed;
+  bottom: 56px; /* acima do indicador de save */
+  left: 18px;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.2s ease;
+}
+
+.blood-moon:hover {
+  transform: scale(1.12);
+  box-shadow: 0 0 18px rgba(255, 40, 40, 0.55);
+}
+
+.blood-moon:active {
+  transform: scale(0.94);
+}
+
+.blood-moon-disc {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ff7a5c, #c21717 55%, #6e0d0d);
+  box-shadow:
+    0 0 8px rgba(255, 60, 40, 0.6),
+    inset -3px -3px 6px rgba(0, 0, 0, 0.45);
+  animation: blood-moon-pulse 2.6s ease-in-out infinite;
+}
+
+@keyframes blood-moon-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 8px rgba(255, 60, 40, 0.6),
+      inset -3px -3px 6px rgba(0, 0, 0, 0.45);
+  }
+  50% {
+    box-shadow:
+      0 0 16px rgba(255, 60, 40, 0.95),
+      inset -3px -3px 6px rgba(0, 0, 0, 0.45);
+  }
+}
+
+/* Véu vermelho que cobre a tela por um instante ao clicar */
+.blood-moon-flash {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(150, 10, 10, 0.25),
+    rgba(120, 5, 5, 0.55)
+  );
+  pointer-events: none;
+  z-index: 90;
+  animation: blood-flash 0.7s ease-out forwards;
+}
+
+@keyframes blood-flash {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }

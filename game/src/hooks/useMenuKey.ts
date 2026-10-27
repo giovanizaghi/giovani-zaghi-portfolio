@@ -8,14 +8,16 @@ import { useGameStore } from '../store/useGameStore'
 export function useMenuKey() {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      const { menuOpen, activeNpc, setMenuOpen, gameOver } = useGameStore.getState()
+      const { menuOpen, activeNpc, setMenuOpen, gameOver, pendingLevelUps } =
+        useGameStore.getState()
 
       if (gameOver) return
 
       if (e.code === 'Tab') {
         // Tab move o foco do browser — sempre previnir
         e.preventDefault()
-        if (!activeNpc) setMenuOpen(!menuOpen)
+        // Travado durante diálogo e escolha de upgrade (level-up)
+        if (!activeNpc && pendingLevelUps === 0) setMenuOpen(!menuOpen)
         return
       }
 

@@ -1,4 +1,4 @@
-import { Suspense } from 'react'
+import { Fragment, Suspense } from 'react'
 import { IsoCamera } from './IsoCamera'
 import { HomeScenario } from './HomeScenario'
 import { HouseExterior } from './HouseExterior'
@@ -12,6 +12,9 @@ import { useGameStore } from '../store/useGameStore'
 
 export function Experience() {
   const scene = useGameStore((s) => s.scene)
+  // Lua de Sangue: mudar a key remonta o cenário inteiro — entidades
+  // consumidas releem a store (já limpa) e voltam a existir
+  const worldNonce = useGameStore((s) => s.worldNonce)
 
   return (
     <>
@@ -33,12 +36,14 @@ export function Experience() {
       <IsoCamera zoom={62} />
 
       {scene === 'outside' ? (
-        <>
+        <Fragment key={`outside-${worldNonce}`}>
           <HouseExterior />
           <ForestScenario />
-        </>
+        </Fragment>
       ) : (
-        <HomeScenario />
+        <Fragment key={`house-${worldNonce}`}>
+          <HomeScenario />
+        </Fragment>
       )}
 
       <Suspense fallback={null}>

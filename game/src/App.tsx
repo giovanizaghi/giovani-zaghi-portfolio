@@ -7,7 +7,9 @@ import { Hotbar } from './ui/Hotbar'
 import { InventoryMenu } from './ui/InventoryMenu'
 import { InteractHint } from './ui/InteractHint'
 import { GameOver } from './ui/GameOver'
+import { LevelUpMenu } from './ui/LevelUpMenu'
 import { SaveIndicator } from './ui/SaveIndicator'
+import { BloodMoon } from './ui/BloodMoon'
 import { useInteractionKey } from './hooks/useInteractionKey'
 import { useMenuKey } from './hooks/useMenuKey'
 
@@ -36,7 +38,9 @@ export default function App() {
       <InteractHint />
       <DialogueBox />
       <SaveIndicator />
+      <BloodMoon />
       <GameOver />
+      <LevelUpMenu />
       <InventoryMenu />
     </KeyboardControls>
   )

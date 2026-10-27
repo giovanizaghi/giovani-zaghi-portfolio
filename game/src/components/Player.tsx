@@ -2,8 +2,9 @@ import { Component, Suspense, useEffect, useMemo, useRef } from 'react'
 import type { ReactNode, RefObject } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useAnimations, useGLTF, useKeyboardControls } from '@react-three/drei'
-import { Group, Vector3 } from 'three'
+import { Group, MeshBasicMaterial, Vector3 } from 'three'
 import { useGameStore, getEffectiveStats } from '../store/useGameStore'
+import { getLastPlayerHitAt } from '../store/enemyRegistry'
 import type { MovementKey } from '../App'
 
 /** Modelo base (sem animações) */
@@ -29,6 +30,11 @@ const STAMINA_DRAIN = 0.9
 const STAMINA_RECHARGE = 0.4
 /** Stamina precisa chegar a este valor para poder correr de novo após esgotar */
 const STAMINA_RESUME = 1
+/** Impulso vertical do solavanco ao receber dano (~0.4 de altura) */
+const HURT_HOP_VY = 3.4
+const HURT_GRAVITY = 16
+/** Opacidade máxima do destaque vermelho de dano */
+const HURT_GLOW_OPACITY = 0.5
 
 interface MovementState {
   moving: boolean
@@ -122,8 +128,15 @@ class ModelErrorBoundary extends Component<{ children: ReactNode }, { failed: bo
 
 export function Player() {
   const group = useRef<Group>(null!)
+  const hurt = useRef<Group>(null!)
+  const hurtGlow = useRef<MeshBasicMaterial>(null!)
   const movement = useRef<MovementState>({ moving: false, running: false })
   const exhausted = useRef(false)
+  // Feedback de dano: solavanco (pulo) + flash vermelho
+  const hopY = useRef(0)
+  const hopV = useRef(0)
+  const hurtFlash = useRef(0)
+  const lastHitSeen = useRef(getLastPlayerHitAt())
   const [, getKeys] = useKeyboardControls<MovementKey>()
 
   // Vetores temporários (evita alocação por frame)
@@ -146,6 +159,23 @@ export function Player() {
   useFrame((state, delta) => {
     const pos = group.current.position
     const gameStore = useGameStore.getState()
+
+    // ---- Feedback de dano: solavanco + destaque vermelho ----
+    // Roda sempre (mesmo com input bloqueado) — é resposta a um hit já sofrido
+    const hitAt = getLastPlayerHitAt()
+    if (hitAt !== lastHitSeen.current) {
+      lastHitSeen.current = hitAt
+      hopV.current = HURT_HOP_VY
+      hurtFlash.current = 1
+    }
+    if (hopY.current > 0 || hopV.current > 0) {
+      hopV.current -= HURT_GRAVITY * delta
+      hopY.current = Math.max(0, hopY.current + hopV.current * delta)
+      if (hopY.current === 0) hopV.current = 0
+    }
+    hurtFlash.current *= Math.exp(-6 * delta)
+    hurt.current.position.y = hopY.current
+    hurtGlow.current.opacity = hurtFlash.current * HURT_GLOW_OPACITY
 
     if (gameStore.pendingSpawn) {
       pos.copy(gameStore.pendingSpawn)
@@ -171,7 +201,10 @@ export function Player() {
     }
 
     const inputBlocked =
-      gameStore.activeNpc !== null || gameStore.menuOpen || gameStore.gameOver
+      gameStore.activeNpc !== null ||
+      gameStore.menuOpen ||
+      gameStore.gameOver ||
+      gameStore.pendingLevelUps > 0
 
     const keys = getKeys()
     const inputX = (keys.right ? 1 : 0) - (keys.left ? 1 : 0)
@@ -235,11 +268,25 @@ export function Player() {
 
   return (
     <group ref={group} position={[4.5, 0, 8.5]}>
-      <ModelErrorBoundary>
-        <Suspense fallback={<CharacterPlaceholder />}>
-          <CharacterModel movement={movement} />
-        </Suspense>
-      </ModelErrorBoundary>
+      {/* grupo "hurt": solavanco vertical ao levar dano — o físico fica no pai */}
+      <group ref={hurt}>
+        {/* destaque vermelho que pisca ao receber dano */}
+        <mesh position={[0, 0.72, 0]}>
+          <capsuleGeometry args={[0.44, 0.85, 4, 12]} />
+          <meshBasicMaterial
+            ref={hurtGlow}
+            color="#ff2a2a"
+            transparent
+            opacity={0}
+            depthWrite={false}
+          />
+        </mesh>
+        <ModelErrorBoundary>
+          <Suspense fallback={<CharacterPlaceholder />}>
+            <CharacterModel movement={movement} />
+          </Suspense>
+        </ModelErrorBoundary>
+      </group>
     </group>
   )
 }

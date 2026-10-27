@@ -52,6 +52,15 @@ export function alertAllEnemies() {
   forEachEnemy((e) => e.alert())
 }
 
+/** Zera o rastreio de combate — a Lua de Sangue chama ao remontar o mundo,
+ *  senão ids de inimigos desmontados deixariam a batalha (e o bloqueio do
+ *  autosave) presos para sempre */
+export function clearCombat() {
+  combatIds.clear()
+  const store = useGameStore.getState()
+  if (store.inBattle) store.endBattle()
+}
+
 export function registerEnemy(enemy: EnemyHandle) {
   enemies.set(enemy.id, enemy)
   return () => {
@@ -62,6 +71,26 @@ export function registerEnemy(enemy: EnemyHandle) {
 export function forEachEnemy(cb: (enemy: EnemyHandle) => void) {
   enemies.forEach((enemy) => {
     if (enemy.isAlive()) cb(enemy)
+  })
+}
+
+/** Separação de horda: empurra `pos` para fora do raio dos outros inimigos
+ *  vivos. Cada inimigo resolve só a METADE da penetração — o outro faz a
+ *  parte dele no próprio useFrame, então o par se separa simetricamente
+ *  sem overshoot. */
+export function separateEnemy(selfId: string, pos: { x: number; z: number }, radius: number) {
+  enemies.forEach((enemy) => {
+    if (enemy.id === selfId || !enemy.isAlive()) return
+    const dx = pos.x - enemy.position.x
+    const dz = pos.z - enemy.position.z
+    const min = radius + enemy.radius
+    const d2 = dx * dx + dz * dz
+    if (d2 < min * min && d2 > 1e-8) {
+      const d = Math.sqrt(d2)
+      const push = (min - d) * 0.5
+      pos.x += (dx / d) * push
+      pos.z += (dz / d) * push
+    }
   })
 }
 
@@ -92,4 +121,9 @@ export function damagePlayer(amount: number) {
   if (now - lastPlayerHitAt < PLAYER_IFRAMES_MS) return
   lastPlayerHitAt = now
   useGameStore.getState().takeDamage(amount)
+}
+
+/** Timestamp (performance.now) do último dano aplicado — o Player usa para o solavanco + flash vermelho */
+export function getLastPlayerHitAt() {
+  return lastPlayerHitAt
 }

@@ -1,8 +1,16 @@
 import { create } from 'zustand'
 import { Vector3 } from 'three'
 import { dialogues } from '../data/dialogues'
-import { deriveStats, xpToNext, EMPTY_BONUSES, applyBuffs } from '../data/stats'
-import type { StatBlock, Buff } from '../data/stats'
+import {
+  deriveStats,
+  xpToNext,
+  EMPTY_BONUSES,
+  applyBuffs,
+  MAX_LEVEL,
+  MAX_PROJECTILES,
+  LEVEL_UP_OPTIONS,
+} from '../data/stats'
+import type { StatBlock, Buff, LevelUpOption } from '../data/stats'
 import { ITEMS, ITEM_IDS, INITIAL_ITEM_COUNT, INITIAL_SLOT_LIMIT, slotUpgradeCost } from '../data/items'
 import type { ItemId } from '../data/items'
 
@@ -64,6 +72,8 @@ interface GameStore {
   colliders: Collider[]
   /** Entidades de mundo já consumidas (moedas, pickups, inimigos mortos) — persiste por cena */
   consumedEntities: Record<string, true>
+  /** Nonce que força o remount do cenário — a Lua de Sangue incrementa para resetar o mundo */
+  worldNonce: number
   /** Tela de game over aberta — pausa movimento, ataques e IA */
   gameOver: boolean
   /** Em combate com a horda — o autosave fica suspenso até o fim da batalha */
@@ -83,6 +93,8 @@ interface GameStore {
   level: number
   /** XP acumulado no nível atual (persistido) */
   xp: number
+  /** Escolhas de upgrade pendentes — >0 abre a tela de level-up e pausa o jogo (persistido) */
+  pendingLevelUps: number
   /** Bônus flat adquiridos via pickups/upgrades (persistido) */
   statBonuses: StatBlock
   /** Skills coletadas (C#, Python, Design, etc.) */
@@ -116,12 +128,17 @@ interface GameStore {
   addStamina: (amount: number) => void
   consumeStamina: (amount: number) => void
   addSkill: (skill: string) => void
-  /** Adiciona XP (já multiplicado por xpGain) e sobe de nível, curando ao upar */
+  /** Adiciona XP (já multiplicado por xpGain) e sobe de nível, curando ao upar.
+   *  Cada nível ganho empilha uma escolha em pendingLevelUps (cap MAX_LEVEL) */
   addXp: (amount: number) => void
+  /** Gasta uma escolha de level-up aplicando o bônus do upgrade escolhido */
+  chooseUpgrade: (id: LevelUpOption['id']) => void
   /** Incrementa um bônus flat de stat (pickups, upgrades futuros) */
   addStatBonus: (stat: keyof StatBlock, amount: number) => void
   /** Marca uma entidade de mundo como consumida (não respawna) */
   consumeEntity: (id: string) => void
+  /** Lua de Sangue: limpa as entidades consumidas e remonta o cenário — inimigos, moedas e pickups voltam */
+  resetWorld: () => void
   /** Aplica dano ao player já descontando a defesa — hearts 0 abre o game over */
   takeDamage: (amount: number) => void
   /** Sai do game over: vida cheia + respawn no ponto da cena atual */
@@ -176,6 +193,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   lineIndex: 0,
   colliders: [],
   consumedEntities: {},
+  worldNonce: 0,
   gameOver: false,
   inBattle: false,
   playerRunning: false,
@@ -186,6 +204,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   stamina: 1,
   level: 1,
   xp: 0,
+  pendingLevelUps: 0,
   statBonuses: { ...EMPTY_BONUSES },
   skills: [],
   inventory: Object.fromEntries(ITEM_IDS.map((id) => [id, INITIAL_ITEM_COUNT])) as Record<
@@ -257,23 +276,42 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
   addXp: (amount) => {
     set((state) => {
+      if (state.level >= MAX_LEVEL) return state
       const gain = deriveStats(state.level, state.statBonuses).xpGain
       let xp = state.xp + amount * gain
       let level = state.level
-      while (xp >= xpToNext(level)) {
+      while (xp >= xpToNext(level) && level < MAX_LEVEL) {
         xp -= xpToNext(level)
         level += 1
       }
+      // No nível máximo a barra fica cheia e o XP extra é descartado
+      if (level >= MAX_LEVEL) xp = xpToNext(MAX_LEVEL)
+      const gained = level - state.level
       const maxHearts = deriveStats(level, state.statBonuses).maxHearts
       return {
         xp,
         level,
         maxHearts,
+        pendingLevelUps: state.pendingLevelUps + gained,
         // Subiu de nível: cura completa
-        hearts: level > state.level ? maxHearts : Math.min(state.hearts, maxHearts),
+        hearts: gained > 0 ? maxHearts : Math.min(state.hearts, maxHearts),
       }
     })
     get().queueSave()
+  },
+  chooseUpgrade: (id) => {
+    const state = get()
+    if (state.pendingLevelUps <= 0) return
+    const option = LEVEL_UP_OPTIONS.find((o) => o.id === id)
+    if (!option) return
+    // Tiro adicional esgotado — não deixa gastar a escolha num upgrade no máximo
+    if (
+      option.stat === 'projectiles' &&
+      deriveStats(state.level, state.statBonuses).projectiles >= MAX_PROJECTILES
+    )
+      return
+    get().addStatBonus(option.stat, option.amount)
+    set({ pendingLevelUps: state.pendingLevelUps - 1 })
   },
   addStatBonus: (stat, amount) => {
     set((state) => {
@@ -292,6 +330,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
       consumedEntities: { ...state.consumedEntities, [id]: true },
     }))
     get().queueSave()
+  },
+  resetWorld: () => {
+    set((state) => ({ consumedEntities: {}, worldNonce: state.worldNonce + 1 }))
+    get().saveGame() // mundo resetado é checkpoint — a lua de sangue persiste
   },
   takeDamage: (amount) => {
     set((state) => {
@@ -347,13 +389,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
     dirty = false
     try {
       const {
-        level, xp, statBonuses, skills, hearts, inventory, coins, slotLimit,
-        scene, playerPosition, consumedEntities,
+        level, xp, pendingLevelUps, statBonuses, skills, hearts, inventory, coins,
+        slotLimit, scene, playerPosition, consumedEntities,
       } = get()
       localStorage.setItem(
         SAVE_KEY,
         JSON.stringify({
-          level, xp, statBonuses, skills, hearts, inventory, coins, slotLimit,
+          level, xp, pendingLevelUps, statBonuses, skills, hearts, inventory, coins,
+          slotLimit,
           scene,
           playerPos: [playerPosition.x, playerPosition.z],
           consumed: Object.keys(consumedEntities),
@@ -374,7 +417,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const save = JSON.parse(raw)
       if (typeof save.level !== 'number' || typeof save.xp !== 'number') return
       const statBonuses = { ...EMPTY_BONUSES, ...save.statBonuses }
-      const maxHearts = deriveStats(save.level, statBonuses).maxHearts
+      const level = Math.min(save.level, MAX_LEVEL)
+      const maxHearts = deriveStats(level, statBonuses).maxHearts
       const slotLimit =
         typeof save.slotLimit === 'number' ? save.slotLimit : INITIAL_SLOT_LIMIT
       const scene: SceneId = save.scene === 'house' ? 'house' : 'outside'
@@ -406,8 +450,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
         scene,
         pendingSpawn: savedPos,
         consumedEntities,
-        level: save.level,
+        level,
         xp: save.xp,
+        pendingLevelUps:
+          typeof save.pendingLevelUps === 'number'
+            ? Math.max(0, Math.floor(save.pendingLevelUps))
+            : 0,
         statBonuses,
         maxHearts,
         hearts: died ? maxHearts : Math.min(save.hearts ?? maxHearts, maxHearts),
@@ -430,7 +478,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
   useItem: (slot) => {
     const state = get()
     const item = ITEMS[slot]
-    if (!item || state.inventory[item.id] <= 0 || state.activeNpc || state.gameOver)
+    if (
+      !item ||
+      state.inventory[item.id] <= 0 ||
+      state.activeNpc ||
+      state.gameOver ||
+      state.pendingLevelUps > 0
+    )
       return false
 
     const effects: WorldEffect[] = []
