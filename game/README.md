@@ -40,7 +40,8 @@ Configuração do serviço (feita no painel/API, não em arquivo — `railway.js
 | `WASD` / setas | Mover o personagem (relativo à câmera) |
 | `Shift` (segurar) | Correr |
 | `E` | Falar com NPC / avançar fala |
-| `Espaço` | Ataque do orbe (rastro de cometa de `0`/`1`) |
+| `Espaço` | Combo corpo a corpo: 3 cortes alternados (o 3º é mais forte) |
+| `C` | Ataque à distância do orbe (rastro de cometa de `0`/`1`) |
 | `1`–`4` | Usar item do hotbar (Java / C# / JS / Python) |
 | `Tab` | Menu de inventário (itens + personagem 3D em idle) |
 | `Esc` | Fechar diálogo |
@@ -62,6 +63,7 @@ src/
 │   ├── IsoCamera.tsx    # câmera ortográfica isométrica (segue o player)
 │   ├── Player.tsx       # GLB + animações idle/walk + movimento
 │   ├── Companion.tsx    # orbe companheiro (estilo Ori) + ataque de dígitos
+│   ├── MeleeCombo.tsx   # combo de 3 cortes de curto alcance (Espaço)
 │   ├── ItemEffects.tsx  # efeitos de mundo dos itens (explosão, cobra)
 │   ├── Crawler.tsx      # inimigo rastejante (FSM yuka: wander→chase→bote)
 │   ├── ItemPickup.tsx   # item coletável flutuante
@@ -188,7 +190,7 @@ ativo — o autosave é suspenso e o HUD mostra "⚔ EM BATALHA". `endBattle`
 (último inimigo morto ou todos desinteressados) é um checkpoint de save.
 
 `src/store/enemyRegistry.ts` registra inimigos vivos para ataques acertarem:
-projéteis do orbe (Espaço), explosão do C# (knockback 8) e a cobra do Python
+cortes do combo (Espaço), projéteis do orbe (C), explosão do C# (knockback 8) e a cobra do Python
 (persegue o inimigo mais próximo) chamam `enemy.hit({ damage, knockback, from })`.
 Matar dá XP (`xpReward` do scaling) + moedas. O player tem 0,9s de i-frames
 contra hits de inimigo (`damagePlayer`).

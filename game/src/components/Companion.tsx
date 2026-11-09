@@ -6,7 +6,12 @@ import { useGameStore, getEffectiveStats } from '../store/useGameStore'
 import { MAX_PROJECTILES } from '../data/stats'
 import { forEachEnemy, nearestEnemy } from '../store/enemyRegistry'
 import { emitBinary, burstBinary } from '../fx/particles'
+import { isOrbForward, orbPosition } from '../store/orbState'
 import type { MovementKey } from '../App'
+
+/** Posição do orbe durante o combo corpo a corpo: à frente e um pouco abaixo */
+const ORB_FORWARD_DIST = 0.55
+const ORB_FORWARD_HEIGHT = 1.3
 
 /** Altura que o orbe flutua acima do player */
 const ORB_HEIGHT = 1.45
@@ -59,7 +64,7 @@ interface Projectile {
 
 /**
  * Orbe companheiro estilo "Sein" (Ori): flutua ao redor do player com brilho
- * azul e, ao apertar Espaço, dispara um projétil na direção do player deixando
+ * azul e, ao apertar C, dispara um projétil na direção do player deixando
  * um rastro de cometa feito de dígitos 0 e 1 cintilantes.
  */
 export function Companion() {
@@ -129,20 +134,31 @@ export function Companion() {
 
     // ---- Orbe: órbita lenta + bob + lag de mola ao seguir o player ----
     orbitAngle.current += delta * ORB_ORBIT_SPEED
-    tmp.target.set(
-      playerPosition.x + Math.cos(orbitAngle.current) * ORB_RADIUS,
-      playerPosition.y + ORB_HEIGHT + Math.sin(t * ORB_BOB_SPEED) * 0.08,
-      playerPosition.z + Math.sin(orbitAngle.current) * ORB_RADIUS
-    )
-    orb.current.position.lerp(tmp.target, 1 - Math.exp(-8 * delta))
+    // No combo corpo a corpo o orbe avança para a frente do player — os cortes saem dele
+    const forward = isOrbForward()
+    if (forward) {
+      tmp.target.set(
+        playerPosition.x + playerDirection.x * ORB_FORWARD_DIST,
+        playerPosition.y + ORB_FORWARD_HEIGHT,
+        playerPosition.z + playerDirection.z * ORB_FORWARD_DIST
+      )
+    } else {
+      tmp.target.set(
+        playerPosition.x + Math.cos(orbitAngle.current) * ORB_RADIUS,
+        playerPosition.y + ORB_HEIGHT + Math.sin(t * ORB_BOB_SPEED) * 0.08,
+        playerPosition.z + Math.sin(orbitAngle.current) * ORB_RADIUS
+      )
+    }
+    orb.current.position.lerp(tmp.target, 1 - Math.exp((forward ? -22 : -8) * delta))
+    orbPosition.copy(orb.current.position)
 
     attackPulse.current *= Math.exp(-6 * delta)
     const pulse = 1 + attackPulse.current * 0.6
     orb.current.scale.setScalar(pulse)
 
-    // ---- Ataque: Espaço dispara projétil na direção do player ----
+    // ---- Ataque à distância: C dispara projétil na direção do player ----
     cooldown.current -= delta
-    const attackDown = getKeys().attack === true
+    const attackDown = getKeys().shoot === true
     if (
       attackDown &&
       !wasAttack.current &&

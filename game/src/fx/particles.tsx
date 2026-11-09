@@ -26,11 +26,15 @@ const life = new Float32Array(MAX_PARTICLES).fill(1)
 const sizeArr = new Float32Array(MAX_PARTICLES)
 const seedArr = new Float32Array(MAX_PARTICLES)
 const fadeArr = new Float32Array(MAX_PARTICLES)
+/** 1 = vagalume: acende, pisca e apaga devagar flutuando */
+const fireflyArr = new Uint8Array(MAX_PARTICLES)
 let cursor = 0
 
 export interface EmitOptions {
   life?: number
   size?: number
+  /** Comportamento de vagalume em vez do fade linear */
+  firefly?: boolean
 }
 
 /** Solta uma partícula de dígito na posição/velocidade dadas */
@@ -41,7 +45,7 @@ export function emitBinary(
   vx: number,
   vy: number,
   vz: number,
-  { life: l = 0.5, size = 0.22 }: EmitOptions = {}
+  { life: l = 0.5, size = 0.22, firefly = false }: EmitOptions = {}
 ) {
   const i = cursor
   cursor = (cursor + 1) % MAX_PARTICLES
@@ -55,6 +59,7 @@ export function emitBinary(
   life[i] = l
   sizeArr[i] = size
   seedArr[i] = Math.random()
+  fireflyArr[i] = firefly ? 1 : 0
 }
 
 /** Explosão radial de dígitos */
@@ -177,14 +182,30 @@ export function BinaryParticles() {
         continue
       }
       age[i] += delta
-      const drag = Math.exp(-2.5 * delta)
+      const firefly = fireflyArr[i] === 1
+      const drag = Math.exp((firefly ? -3.5 : -2.5) * delta)
       vel[i * 3] *= drag
-      vel[i * 3 + 1] = vel[i * 3 + 1] * drag + 0.5 * delta
+      vel[i * 3 + 1] = vel[i * 3 + 1] * drag + (firefly ? 0.25 : 0.5) * delta
       vel[i * 3 + 2] *= drag
+      if (firefly) {
+        // Vagueia em curvas lentas, cada um no seu ritmo
+        const w = age[i] * 3 + seedArr[i] * 40
+        vel[i * 3] += Math.sin(w) * 0.9 * delta
+        vel[i * 3 + 2] += Math.cos(w * 1.3) * 0.9 * delta
+      }
       pos[i * 3] += vel[i * 3] * delta
       pos[i * 3 + 1] += vel[i * 3 + 1] * delta
       pos[i * 3 + 2] += vel[i * 3 + 2] * delta
-      fadeArr[i] = Math.max(0, 1 - age[i] / life[i])
+      const t = age[i] / life[i]
+      if (firefly) {
+        // Acende rápido, pisca e vai apagando aos poucos
+        const lightUp = Math.min(1, t / 0.15)
+        const dim = Math.pow(1 - t, 1.6)
+        const twinkle = 0.65 + 0.35 * Math.sin(age[i] * 14 + seedArr[i] * 30)
+        fadeArr[i] = Math.max(0, lightUp * lightUp * dim * twinkle)
+      } else {
+        fadeArr[i] = Math.max(0, 1 - t)
+      }
     }
 
     for (const name of ['position', 'aSize', 'aSeed', 'aFade'] as const) {

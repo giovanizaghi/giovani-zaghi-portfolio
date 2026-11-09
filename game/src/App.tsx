@@ -14,7 +14,7 @@ import { BloodMoon } from './ui/BloodMoon'
 import { useInteractionKey } from './hooks/useInteractionKey'
 import { useMenuKey } from './hooks/useMenuKey'
 
-export type MovementKey = 'forward' | 'back' | 'left' | 'right' | 'run' | 'attack'
+export type MovementKey = 'forward' | 'back' | 'left' | 'right' | 'run' | 'attack' | 'shoot'
 
 const keyMap = [
   { name: 'forward', keys: ['KeyW', 'ArrowUp'] },
@@ -23,6 +23,7 @@ const keyMap = [
   { name: 'right', keys: ['KeyD', 'ArrowRight'] },
   { name: 'run', keys: ['ShiftLeft', 'ShiftRight'] },
   { name: 'attack', keys: ['Space'] },
+  { name: 'shoot', keys: ['KeyC'] },
 ]
 
 export default function App() {

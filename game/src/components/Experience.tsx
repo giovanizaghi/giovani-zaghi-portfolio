@@ -7,6 +7,7 @@ import { TransportStation } from './TransportStation'
 import { TerminalScenario } from './TerminalScenario'
 import { Player } from './Player'
 import { Companion } from './Companion'
+import { MeleeCombo } from './MeleeCombo'
 import { ItemEffects } from './ItemEffects'
 import { BinaryParticles } from '../fx/particles'
 import { StaminaWheel } from './StaminaWheel'
@@ -56,6 +57,7 @@ export function Experience() {
       <Suspense fallback={null}>
         <Player />
         <Companion />
+        <MeleeCombo />
       </Suspense>
 
       <ItemEffects />
