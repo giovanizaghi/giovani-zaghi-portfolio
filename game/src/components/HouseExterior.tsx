@@ -2,16 +2,27 @@ import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Shape, ShapeGeometry, Vector3 } from 'three'
 import { useGameStore } from '../store/useGameStore'
+import type { DoorTarget } from '../store/useGameStore'
+import { Padlock } from './Padlock'
+import { KeyPickup } from './KeyPickup'
 
 /** Footprint da casa (16x12 centrada na origem) — a porta fica na parede sul */
 const DOOR_X = 4.5
 const DOOR_Z = 6
 const DOOR_INTERACT_RADIUS = 1.6
 
+/** Trava da porta da frente — id persiste no save, position é o cadeado p/ FX */
+const HOUSE_LOCK: NonNullable<DoorTarget['lock']> = {
+  id: 'house-front',
+  color: 'silver',
+  position: [DOOR_X, 1.4, DOOR_Z + 0.25],
+}
+
 /** Casa vista de fora: caixa de alvenaria + telhado de duas águas + porta/janelas */
 export function HouseExterior() {
   const wasNear = useRef(false)
   const doorPos = useMemo(() => new Vector3(DOOR_X, 0, DOOR_Z + 0.9), [])
+  const frontUnlocked = useGameStore((s) => s.unlockedDoors[HOUSE_LOCK.id] === true)
 
   // Triângulo do frontão (empena) do telhado
   const gable = useMemo(
@@ -46,16 +57,26 @@ export function HouseExterior() {
       wasNear.current = near
       setInteractDoor(
         near
-          ? { label: 'Entrar na casa', scene: 'house', spawn: [DOOR_X, 0, 4.2] }
+          ? {
+              label: 'Entrar na casa',
+              scene: 'house',
+              spawn: [DOOR_X, 0, 4.2],
+              lock: HOUSE_LOCK,
+            }
           : null
       )
     }
   })
 
   const tryEnter = () => {
-    const { playerPosition, enterScene } = useGameStore.getState()
+    const { playerPosition, interactWithDoor } = useGameStore.getState()
     if (playerPosition.distanceTo(doorPos) < DOOR_INTERACT_RADIUS) {
-      enterScene('house', [DOOR_X, 0, 4.2])
+      interactWithDoor({
+        label: 'Entrar na casa',
+        scene: 'house',
+        spawn: [DOOR_X, 0, 4.2],
+        lock: HOUSE_LOCK,
+      })
     }
   }
 
@@ -114,6 +135,14 @@ export function HouseExterior() {
         <boxGeometry args={[2.4, 0.14, 1.2]} />
         <meshStandardMaterial color="#9a8a72" />
       </mesh>
+
+      {/* Cadeado prateado na porta enquanto ela estiver trancada */}
+      {!frontUnlocked && (
+        <Padlock position={[DOOR_X, 1.1, DOOR_Z + 0.25]} color="silver" scale={1.1} />
+      )}
+
+      {/* Chave de prata no gramado do quintal */}
+      <KeyPickup color="silver" position={[-9, 0.5, 11]} />
 
       {/* Janelas */}
       <mesh position={[-4, 1.5, DOOR_Z + 0.02]}>

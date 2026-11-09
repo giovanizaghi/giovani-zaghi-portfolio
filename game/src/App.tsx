@@ -4,6 +4,7 @@ import { Experience } from './components/Experience'
 import { DialogueBox } from './ui/DialogueBox'
 import { Hud } from './ui/Hud'
 import { Hotbar } from './ui/Hotbar'
+import { KeysDisplay } from './ui/KeysDisplay'
 import { InventoryMenu } from './ui/InventoryMenu'
 import { InteractHint } from './ui/InteractHint'
 import { GameOver } from './ui/GameOver'
@@ -35,6 +36,7 @@ export default function App() {
       </Canvas>
       <Hud />
       <Hotbar />
+      <KeysDisplay />
       <InteractHint />
       <DialogueBox />
       <SaveIndicator />

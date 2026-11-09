@@ -231,6 +231,36 @@ body,
   color: #f5c542;
 }
 
+/* ---------- Chaves na mochila (abaixo das moedas, canto superior direito) ---------- */
+
+.keys-display {
+  position: fixed;
+  top: 62px;
+  right: 18px;
+  padding: 6px 14px;
+  background: rgba(0, 0, 0, 0.45);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  pointer-events: none;
+  z-index: 40;
+}
+
+.keys-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: bold;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.keys-count {
+  color: rgba(255, 255, 255, 0.9);
+}
+
 .hotbar-slots {
   display: flex;
   gap: 6px;

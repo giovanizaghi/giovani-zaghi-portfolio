@@ -15,7 +15,7 @@ export function useInteractionKey() {
         openDialogue,
         advanceDialogue,
         closeDialogue,
-        enterScene,
+        interactWithDoor,
         gameOver,
         pendingLevelUps,
       } = useGameStore.getState()
@@ -31,7 +31,7 @@ export function useInteractionKey() {
       if (activeNpc) {
         advanceDialogue()
       } else if (interactDoor) {
-        enterScene(interactDoor.scene, interactDoor.spawn)
+        interactWithDoor(interactDoor)
       } else if (interactTarget) {
         openDialogue(interactTarget)
       }

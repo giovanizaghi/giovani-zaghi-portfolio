@@ -13,6 +13,9 @@ import {
 import type { StatBlock, Buff, LevelUpOption } from '../data/stats'
 import { ITEMS, ITEM_IDS, INITIAL_ITEM_COUNT, INITIAL_SLOT_LIMIT, slotUpgradeCost } from '../data/items'
 import type { ItemId } from '../data/items'
+import { KEY_COLOR_IDS } from '../data/keys'
+import type { KeyColor } from '../data/keys'
+import { burstBinary } from '../fx/particles'
 
 export interface Collider {
   id: string
@@ -41,6 +44,8 @@ export interface DoorTarget {
   label: string
   scene: SceneId
   spawn: [number, number, number]
+  /** Trava por chave — o primeiro E consome a chave e abre; depois vira porta normal */
+  lock?: { id: string; color: KeyColor; position: [number, number, number] }
 }
 
 /** Efeito de mundo disparado por item — consumido pelo ItemEffects no próximo frame */
@@ -105,6 +110,10 @@ interface GameStore {
   slotLimit: number
   /** Moedas coletadas (persistido) */
   coins: number
+  /** Chaves na mochila por cor — sempre coletáveis, não usam slotLimit (persistido) */
+  keys: Record<KeyColor, number>
+  /** Portas destrancadas por id de trava — a chave é consumida e não volta (persistido) */
+  unlockedDoors: Record<string, true>
   /** Slot selecionado no hotbar (0–3) */
   selectedSlot: number
   /** Buffs temporários ativos (item Java etc.) — expiram por timestamp */
@@ -115,6 +124,9 @@ interface GameStore {
   setInteractDoor: (door: DoorTarget | null) => void
   /** Troca de cena e posiciona o player no spawn */
   enterScene: (scene: SceneId, spawn: [number, number, number]) => void
+  /** Interage com uma porta: destranca com a chave certa (consumindo) ou teleporta.
+   *  Portas da mesma cena usam enterScene com a cena atual — vira só um teleporte */
+  interactWithDoor: (door: DoorTarget) => void
   clearPendingSpawn: () => void
   openDialogue: (npcId: string) => void
   /** Abre/fecha o menu de inventário (Tab) */
@@ -161,6 +173,8 @@ interface GameStore {
   useItem: (slot: number) => boolean
   /** Coleta itens do mundo, respeitando o slotLimit. Retorna quantos couberam. */
   collectItem: (id: ItemId, amount?: number) => number
+  /** Coleta uma chave — incremento simples, sem limite de inventário */
+  collectKey: (color: KeyColor) => void
   addCoins: (amount: number) => void
   /** Compra +1 de limite de slots com moedas. Retorna se comprou. */
   buySlotUpgrade: () => boolean
@@ -213,6 +227,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   >,
   slotLimit: INITIAL_SLOT_LIMIT,
   coins: 0,
+  keys: { silver: 0, gold: 0 },
+  unlockedDoors: {},
   selectedSlot: 0,
   buffs: [],
   pendingEffects: [],
@@ -232,6 +248,23 @@ export const useGameStore = create<GameStore>((set, get) => ({
     // playerPosition ainda tem as coords da cena anterior — sincroniza antes do save
     get().playerPosition.set(...spawn)
     get().saveGame() // troca de cena é um checkpoint — salva na hora
+  },
+  interactWithDoor: (door) => {
+    const lock = door.lock
+    if (lock && !get().unlockedDoors[lock.id]) {
+      const { keys } = get()
+      if (keys[lock.color] <= 0) return // trancada e sem a chave — nada acontece
+      set((state) => ({
+        keys: { ...state.keys, [lock.color]: state.keys[lock.color] - 1 },
+        unlockedDoors: { ...state.unlockedDoors, [lock.id]: true },
+      }))
+      burstBinary(lock.position[0], lock.position[1], lock.position[2], 14, 2, {
+        size: 0.3,
+      })
+      get().saveGame() // destrancar é checkpoint — a chave consumida persiste
+      return
+    }
+    get().enterScene(door.scene, door.spawn)
   },
   clearPendingSpawn: () => set({ pendingSpawn: null }),
   openDialogue: (npcId) => set({ activeNpc: npcId, lineIndex: 0 }),
@@ -332,7 +365,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
     get().queueSave()
   },
   resetWorld: () => {
-    set((state) => ({ consumedEntities: {}, worldNonce: state.worldNonce + 1 }))
+    set((state) => {
+      // Chaves coletadas sobrevivem à Lua de Sangue — senão cada reset geraria chave infinita
+      const consumedEntities: Record<string, true> = {}
+      for (const id of Object.keys(state.consumedEntities)) {
+        if (id.startsWith('key:')) consumedEntities[id] = true
+      }
+      return { consumedEntities, worldNonce: state.worldNonce + 1 }
+    })
     get().saveGame() // mundo resetado é checkpoint — a lua de sangue persiste
   },
   takeDamage: (amount) => {
@@ -390,7 +430,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     try {
       const {
         level, xp, pendingLevelUps, statBonuses, skills, hearts, inventory, coins,
-        slotLimit, scene, playerPosition, consumedEntities,
+        slotLimit, scene, playerPosition, consumedEntities, keys, unlockedDoors,
       } = get()
       localStorage.setItem(
         SAVE_KEY,
@@ -400,6 +440,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
           scene,
           playerPos: [playerPosition.x, playerPosition.z],
           consumed: Object.keys(consumedEntities),
+          keys,
+          unlockedDoors: Object.keys(unlockedDoors),
         })
       )
     } catch {
@@ -446,6 +488,22 @@ export const useGameStore = create<GameStore>((set, get) => ({
           if (typeof id === 'string') consumedEntities[id] = true
         }
       }
+      // Saves antigos não têm chaves/portas — caem no default vazio
+      const keys: Record<KeyColor, number> = { silver: 0, gold: 0 }
+      if (save.keys && typeof save.keys === 'object') {
+        for (const color of KEY_COLOR_IDS) {
+          const value = save.keys[color]
+          if (typeof value === 'number' && Number.isFinite(value)) {
+            keys[color] = Math.max(0, Math.floor(value))
+          }
+        }
+      }
+      const unlockedDoors: Record<string, true> = {}
+      if (Array.isArray(save.unlockedDoors)) {
+        for (const id of save.unlockedDoors) {
+          if (typeof id === 'string') unlockedDoors[id] = true
+        }
+      }
       set({
         scene,
         pendingSpawn: savedPos,
@@ -462,6 +520,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         skills: Array.isArray(save.skills) ? save.skills : [],
         slotLimit,
         coins: typeof save.coins === 'number' ? save.coins : 0,
+        keys,
+        unlockedDoors,
         inventory: save.inventory
           ? (Object.fromEntries(
               ITEM_IDS.map((id) => [id, Math.min(save.inventory[id] ?? 0, slotLimit)])
@@ -531,6 +591,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
       get().queueSave()
     }
     return collected
+  },
+  collectKey: (color) => {
+    set((state) => ({ keys: { ...state.keys, [color]: state.keys[color] + 1 } }))
+    get().queueSave()
   },
   addCoins: (amount) => {
     set((state) => ({ coins: state.coins + amount }))

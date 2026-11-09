@@ -5,7 +5,9 @@ import { Box3, Vector3 } from 'three'
 import { useGameStore } from '../store/useGameStore'
 import { CoffeeCup } from './CoffeeCup'
 import { LockedGate } from './LockedGate'
+import { LockedDoor } from './LockedDoor'
 import { ItemPickup } from './ItemPickup'
+import { KeyPickup } from './KeyPickup'
 import { Coin } from './Coin'
 import { Crawler } from './Crawler'
 import { Flyer } from './Flyer'
@@ -100,6 +102,37 @@ const altars = [
   { position: [0, 0.6, 50] as [number, number, number], color: '#6b5ed4', glow: '#9a8aff' },
 ]
 
+// Cofre murado a oeste (5x5, centro -13,33) — parede leste tem vão da porta
+// dourada em z=33; a recompensa fica dentro
+const vaultWalls = [
+  // eixo X (norte/sul) — 5.3 para cobrir os cantos
+  { position: [-13, 0.7, 30.5] as [number, number, number], size: [5.3, 1.4, 0.3] as [number, number, number] },
+  { position: [-13, 0.7, 35.5] as [number, number, number], size: [5.3, 1.4, 0.3] as [number, number, number] },
+  // eixo Z — oeste inteiro; leste em dois trechos (vão z 32.2..33.8 = porta)
+  { position: [-15.5, 0.7, 33] as [number, number, number], size: [0.3, 1.4, 5.3] as [number, number, number] },
+  { position: [-10.5, 0.7, 31.35] as [number, number, number], size: [0.3, 1.4, 1.7] as [number, number, number] },
+  { position: [-10.5, 0.7, 34.65] as [number, number, number], size: [0.3, 1.4, 1.7] as [number, number, number] },
+]
+
+// Amostragem de pontos ao longo de cada parede (mesmo padrão do HomeScenario)
+const vaultColliderPoints = vaultWalls.flatMap((wall, wallIndex) => {
+  const horizontal = wall.size[0] > wall.size[2]
+  const length = horizontal ? wall.size[0] : wall.size[2]
+  const count = Math.ceil(length / 0.55)
+  return Array.from({ length: count + 1 }, (_, index) => {
+    const offset = -length / 2 + (index / count) * length
+    return {
+      id: `vault-wall-${wallIndex}-${index}`,
+      position: new Vector3(
+        wall.position[0] + (horizontal ? offset : 0),
+        0,
+        wall.position[2] + (horizontal ? 0 : offset)
+      ),
+      radius: 0.28,
+    }
+  })
+})
+
 const colliders = [
   ...trees.map((tree, index) => ({
     id: `forest-tree-${index}`,
@@ -116,6 +149,7 @@ const colliders = [
     position: new Vector3(altar.position[0], 0, altar.position[2]),
     radius: 0.6,
   })),
+  ...vaultColliderPoints,
 ]
 
 export function ForestScenario() {
@@ -174,6 +208,30 @@ export function ForestScenario() {
       <ItemPickup position={[-3.4, 0.6, 26]} item="csharp" />
       <ItemPickup position={[2.6, 0.6, 36]} item="javascript" />
       <ItemPickup position={[-1.5, 0.6, 21]} item="python" />
+
+      {/* Cofre murado — parede de pedra + porta dourada (teleporte na mesma cena) */}
+      {vaultWalls.map((wall, index) => (
+        <mesh key={`vault-wall-${index}`} position={wall.position} castShadow receiveShadow>
+          <boxGeometry args={wall.size} />
+          <meshStandardMaterial color="#8b8b8b" />
+        </mesh>
+      ))}
+      <LockedDoor
+        id="forest-vault"
+        lock="gold"
+        position={[-10.5, 0, 33]}
+        rotationY={Math.PI / 2}
+        label="Porta do cofre"
+        labelFront="Entrar no cofre"
+        labelBack="Sair do cofre"
+      />
+      <Coin position={[-13.2, 0.5, 31.8]} />
+      <Coin position={[-12.3, 0.5, 34.3]} />
+      <Coin position={[-14.1, 0.5, 33.6]} />
+      <ItemPickup position={[-13, 0.6, 33]} item="java" />
+
+      {/* Chave de ouro ao longo da trilha, perto dos rastejantes */}
+      <KeyPickup color="gold" position={[-3.5, 0.6, 38]} />
 
       <Coin position={[1.2, 0.5, 19]} />
       <Coin position={[-0.8, 0.5, 23]} />
