@@ -132,6 +132,8 @@ export function Player() {
   const hurtGlow = useRef<MeshBasicMaterial>(null!)
   const movement = useRef<MovementState>({ moving: false, running: false })
   const exhausted = useRef(false)
+  // Em viagem de transporte o player "embarou" — some e não se move
+  const riding = useGameStore((s) => s.transition !== null)
   // Feedback de dano: solavanco (pulo) + flash vermelho
   const hopY = useRef(0)
   const hopV = useRef(0)
@@ -204,6 +206,7 @@ export function Player() {
       gameStore.activeNpc !== null ||
       gameStore.menuOpen ||
       gameStore.gameOver ||
+      gameStore.transition !== null ||
       gameStore.pendingLevelUps > 0
 
     const keys = getKeys()
@@ -267,7 +270,7 @@ export function Player() {
   })
 
   return (
-    <group ref={group} position={[4.5, 0, 8.5]}>
+    <group ref={group} position={[4.5, 0, 8.5]} visible={!riding}>
       {/* grupo "hurt": solavanco vertical ao levar dano — o físico fica no pai */}
       <group ref={hurt}>
         {/* destaque vermelho que pisca ao receber dano */}

@@ -441,11 +441,12 @@ export function Flyer({ position }: FlyerProps) {
   useFrame((state, delta) => {
     if (ctx.dead) return
     const store = useGameStore.getState()
-    // IA pausada junto com o player (diálogo/menu/level-up/game over)
+    // IA pausada junto com o player (diálogo/menu/level-up/game over/viagem)
     if (
       store.activeNpc !== null ||
       store.menuOpen ||
       store.gameOver ||
+      store.transition !== null ||
       store.pendingLevelUps > 0
     )
       return

@@ -79,6 +79,14 @@ src/
 ├── data/dialogues.ts    # falas por NPC
 ├── data/stats.ts        # stats, curva de XP e scaling de inimigos
 ├── data/items.ts        # definições dos itens do hotbar
+├── data/transports.ts   # tipos/direções/config dos transportes
+├── data/keys.ts         # cores de chaves e portas trancadas
+├── components/Transport.tsx         # veículos low-poly + <Transport>/<ParkedVehicle>
+├── components/TransportStation.tsx  # 5 transportes de partida (cena outside)
+├── components/TerminalScenario.tsx  # Terminal Central (destino dos transportes)
+├── components/HouseExterior.tsx     # casa + quintal (cena outside)
+├── components/ForestScenario.tsx    # floresta (cena outside)
+├── components/HomeScenario.tsx      # interior da casa (cena house)
 └── hooks/useInteractionKey.ts
 ```
 
@@ -130,6 +138,26 @@ Enquanto um save é escrito, `saving` acende o `SaveIndicator` no canto
 inferior esquerdo (dígito 0/1 piscando). Morrer abre o `GameOver`
 (`hearts <= 0` em `takeDamage`); Enter/E ou clique em Continuar chama
 `respawn()` — vida cheia no spawn da cena (`SCENE_SPAWNS`).
+
+## Cenas e transportes
+
+O jogo tem 3 cenas (`SceneId` em `useGameStore.ts`): `outside` (quintal +
+floresta), `house` (interior) e `terminal` (Terminal Central). A troca de
+cena normal é instantânea via `DoorTarget`/`enterScene`.
+
+Além das portas, a cena `outside` tem 5 **transportes** que levam ao
+Terminal com animação: elevador (sobe), carro (leste), van (sul), ônibus
+(norte) e avião (noroeste — taxi e depois escalada diagonal). O Terminal
+tem uma plataforma por tipo com o veículo estacionado e um elevador de
+retorno que desce de volta ao quintal.
+
+O fluxo: `DoorTarget.transport` → `startTransport` guarda a viagem na
+store → o `<Transport>` anima pelo relógio (`startedAt`) → só no fim da
+duração `finishTransport` chama `enterScene`. Durante a viagem o player
+fica escondido e parado (a câmera não segue o veículo), e input, itens,
+dano e IA ficam bloqueados. Tipos e direções em `src/data/transports.ts`
+(bússola no eixo do mundo: north = -Z, east = +X); detalhes para agentes
+em `AGENTS.md`.
 
 ## Inimigos
 

@@ -15,6 +15,7 @@ import { ITEMS, ITEM_IDS, INITIAL_ITEM_COUNT, INITIAL_SLOT_LIMIT, slotUpgradeCos
 import type { ItemId } from '../data/items'
 import { KEY_COLOR_IDS } from '../data/keys'
 import type { KeyColor } from '../data/keys'
+import type { TransportLink, TransportRide } from '../data/transports'
 import { burstBinary } from '../fx/particles'
 
 export interface Collider {
@@ -23,13 +24,15 @@ export interface Collider {
   radius: number
 }
 
-/** Cenas do jogo — 'outside' (quintal + floresta) e 'house' (interior da casa) */
-export type SceneId = 'outside' | 'house'
+/** Cenas do jogo — 'outside' (quintal + floresta), 'house' (interior) e
+ *  'terminal' (Terminal Central, destino de todos os transportes) */
+export type SceneId = 'outside' | 'house' | 'terminal'
 
 /** Ponto de respawn de cada cena (game over e fallback de spawn) */
 export const SCENE_SPAWNS: Record<SceneId, [number, number, number]> = {
   outside: [4.5, 0, 8.5],
   house: [4.5, 0, 4.2],
+  terminal: [0, 0, 4],
 }
 
 /** Região jogável de cada cena — posições salvas fora dela caem no spawn
@@ -37,15 +40,30 @@ export const SCENE_SPAWNS: Record<SceneId, [number, number, number]> = {
 const SCENE_BOUNDS: Record<SceneId, { minX: number; maxX: number; minZ: number; maxZ: number }> = {
   outside: { minX: -22, maxX: 22, minZ: -12, maxZ: 62 },
   house: { minX: -8.6, maxX: 8.6, minZ: -6.6, maxZ: 6.6 },
+  terminal: { minX: -14, maxX: 14, minZ: -11, maxZ: 11 },
 }
 
-/** Alvo de interação que troca de cena (porta da casa / saída) */
+/** Alvo de interação que troca de cena (porta da casa / saída / transporte) */
 export interface DoorTarget {
   label: string
   scene: SceneId
   spawn: [number, number, number]
   /** Trava por chave — o primeiro E consome a chave e abre; depois vira porta normal */
   lock?: { id: string; color: KeyColor; position: [number, number, number] }
+  /** Transporte que faz a viagem animada até `scene`/`spawn` — sem isso, teleporte direto */
+  transport?: TransportLink
+}
+
+/** Viagem de transporte em andamento — a cena destino só carrega quando a
+ *  animação do `<Transport>` termina e chama `finishTransport` */
+export interface ActiveTransition {
+  /** Id do `<Transport>` na cena de origem que está animando */
+  id: string
+  ride: TransportRide
+  scene: SceneId
+  spawn: [number, number, number]
+  /** performance.now() do embarque — a animação é medida pelo relógio */
+  startedAt: number
 }
 
 /** Efeito de mundo disparado por item — consumido pelo ItemEffects no próximo frame */
@@ -65,6 +83,9 @@ interface GameStore {
   pendingSpawn: Vector3 | null
   /** Porta em alcance de interação (null = nenhuma) */
   interactDoor: DoorTarget | null
+  /** Viagem de transporte em andamento (null = nenhuma) — bloqueia input,
+   *  dano e IA; NÃO é persistida no save */
+  transition: ActiveTransition | null
   /** Id do NPC em alcance de interação (null = nenhum) */
   interactTarget: string | null
   /** Id do NPC com diálogo aberto (null = diálogo fechado) */
@@ -125,8 +146,14 @@ interface GameStore {
   /** Troca de cena e posiciona o player no spawn */
   enterScene: (scene: SceneId, spawn: [number, number, number]) => void
   /** Interage com uma porta: destranca com a chave certa (consumindo) ou teleporta.
-   *  Portas da mesma cena usam enterScene com a cena atual — vira só um teleporte */
+   *  Portas da mesma cena usam enterScene com a cena atual — vira só um teleporte.
+   *  Alvos com `transport` embarcam no veículo (animação antes de carregar) */
   interactWithDoor: (door: DoorTarget) => void
+  /** Embarca num transporte: trava input/dano/IA até `finishTransport`.
+   *  No-op se já houver viagem em andamento */
+  startTransport: (transport: TransportLink, scene: SceneId, spawn: [number, number, number]) => void
+  /** Fim da animação do transporte: carrega a cena destino e encerra a viagem */
+  finishTransport: () => void
   clearPendingSpawn: () => void
   openDialogue: (npcId: string) => void
   /** Abre/fecha o menu de inventário (Tab) */
@@ -201,6 +228,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   playerDirection: new Vector3(0, 0, 1),
   pendingSpawn: null,
   interactDoor: null,
+  transition: null,
   interactTarget: null,
   activeNpc: null,
   menuOpen: false,
@@ -244,12 +272,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
       pendingSpawn: new Vector3(...spawn),
       interactDoor: null,
       interactTarget: null,
+      // Se enterScene for chamado direto no meio de uma viagem (aborta o ride)
+      transition: null,
     })
     // playerPosition ainda tem as coords da cena anterior — sincroniza antes do save
     get().playerPosition.set(...spawn)
     get().saveGame() // troca de cena é um checkpoint — salva na hora
   },
   interactWithDoor: (door) => {
+    // Viagem em andamento — nenhuma interação de porta vale até ela terminar
+    if (get().transition) return
     const lock = door.lock
     if (lock && !get().unlockedDoors[lock.id]) {
       const { keys } = get()
@@ -264,7 +296,31 @@ export const useGameStore = create<GameStore>((set, get) => ({
       get().saveGame() // destrancar é checkpoint — a chave consumida persiste
       return
     }
-    get().enterScene(door.scene, door.spawn)
+    if (door.transport) {
+      get().startTransport(door.transport, door.scene, door.spawn)
+    } else {
+      get().enterScene(door.scene, door.spawn)
+    }
+  },
+  startTransport: (transport, scene, spawn) => {
+    if (get().transition) return // já embarcado — ignora
+    set({
+      transition: {
+        id: transport.id,
+        ride: transport.ride,
+        scene,
+        spawn,
+        startedAt: performance.now(),
+      },
+      interactDoor: null,
+      interactTarget: null,
+    })
+  },
+  finishTransport: () => {
+    const t = get().transition
+    if (!t) return
+    get().enterScene(t.scene, t.spawn) // enterScene já limpa transition
+    set({ transition: null })
   },
   clearPendingSpawn: () => set({ pendingSpawn: null }),
   openDialogue: (npcId) => set({ activeNpc: npcId, lineIndex: 0 }),
@@ -377,7 +433,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
   takeDamage: (amount) => {
     set((state) => {
-      if (state.gameOver) return state
+      // Em viagem de transporte o player "embarou" — não recebe dano
+      if (state.gameOver || state.transition) return state
       const defense = deriveStats(state.level, state.statBonuses).defense
       const hearts = Math.max(0, state.hearts - amount * (1 - defense))
       return { hearts, gameOver: hearts <= 0 }
@@ -463,7 +520,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const maxHearts = deriveStats(level, statBonuses).maxHearts
       const slotLimit =
         typeof save.slotLimit === 'number' ? save.slotLimit : INITIAL_SLOT_LIMIT
-      const scene: SceneId = save.scene === 'house' ? 'house' : 'outside'
+      const scene: SceneId =
+        typeof save.scene === 'string' && Object.hasOwn(SCENE_SPAWNS, save.scene)
+          ? (save.scene as SceneId)
+          : 'outside'
       // Morreu com o save aberto: volta no respawn da cena com vida cheia
       const died = typeof save.hearts === 'number' && save.hearts <= 0
       const bounds = SCENE_BOUNDS[scene]
@@ -543,6 +603,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       state.inventory[item.id] <= 0 ||
       state.activeNpc ||
       state.gameOver ||
+      state.transition ||
       state.pendingLevelUps > 0
     )
       return false

@@ -65,6 +65,8 @@ interface Projectile {
 export function Companion() {
   const orb = useRef<Group>(null!)
   const [, getKeys] = useKeyboardControls<MovementKey>()
+  // Em viagem de transporte o orbe "embarca" junto — some da cena
+  const riding = useGameStore((s) => s.transition !== null)
 
   const orbitAngle = useRef(0)
   const cooldown = useRef(0)
@@ -122,6 +124,7 @@ export function Companion() {
       menuOpen,
       gameOver,
       pendingLevelUps,
+      transition,
     } = gameStore
 
     // ---- Orbe: órbita lenta + bob + lag de mola ao seguir o player ----
@@ -147,6 +150,7 @@ export function Companion() {
       !activeNpc &&
       !menuOpen &&
       !gameOver &&
+      transition === null &&
       pendingLevelUps === 0
     ) {
       const stats = getEffectiveStats()
@@ -238,7 +242,7 @@ export function Companion() {
   })
 
   return (
-    <group ref={orb}>
+    <group ref={orb} visible={!riding}>
       <pointLight color="#4db8ff" intensity={5} distance={5} decay={2} />
       <mesh>
         <sphereGeometry args={[0.09, 16, 16]} />

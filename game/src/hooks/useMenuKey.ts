@@ -8,10 +8,10 @@ import { useGameStore } from '../store/useGameStore'
 export function useMenuKey() {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      const { menuOpen, activeNpc, setMenuOpen, gameOver, pendingLevelUps } =
+      const { menuOpen, activeNpc, setMenuOpen, gameOver, pendingLevelUps, transition } =
         useGameStore.getState()
 
-      if (gameOver) return
+      if (gameOver || transition) return
 
       if (e.code === 'Tab') {
         // Tab move o foco do browser — sempre previnir

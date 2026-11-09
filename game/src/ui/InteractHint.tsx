@@ -8,11 +8,12 @@ export function InteractHint() {
   const interactDoor = useGameStore((s) => s.interactDoor)
   const activeNpc = useGameStore((s) => s.activeNpc)
   const gameOver = useGameStore((s) => s.gameOver)
+  const transition = useGameStore((s) => s.transition)
   // Assina chaves e portas abertas para o texto atualizar ao vivo
   const keys = useGameStore((s) => s.keys)
   const unlockedDoors = useGameStore((s) => s.unlockedDoors)
 
-  if (gameOver || activeNpc || (!interactTarget && !interactDoor)) return null
+  if (transition || gameOver || activeNpc || (!interactTarget && !interactDoor)) return null
 
   let label = interactDoor
     ? interactDoor.label

@@ -18,9 +18,10 @@ export function useInteractionKey() {
         interactWithDoor,
         gameOver,
         pendingLevelUps,
+        transition,
       } = useGameStore.getState()
 
-      if (gameOver || pendingLevelUps > 0) return
+      if (gameOver || pendingLevelUps > 0 || transition) return
 
       if (e.code === 'Escape' && activeNpc) {
         closeDialogue()

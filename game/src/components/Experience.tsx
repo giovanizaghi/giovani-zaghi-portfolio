@@ -3,6 +3,8 @@ import { IsoCamera } from './IsoCamera'
 import { HomeScenario } from './HomeScenario'
 import { HouseExterior } from './HouseExterior'
 import { ForestScenario } from './ForestScenario'
+import { TransportStation } from './TransportStation'
+import { TerminalScenario } from './TerminalScenario'
 import { Player } from './Player'
 import { Companion } from './Companion'
 import { ItemEffects } from './ItemEffects'
@@ -39,10 +41,15 @@ export function Experience() {
         <Fragment key={`outside-${worldNonce}`}>
           <HouseExterior />
           <ForestScenario />
+          <TransportStation />
         </Fragment>
-      ) : (
+      ) : scene === 'house' ? (
         <Fragment key={`house-${worldNonce}`}>
           <HomeScenario />
+        </Fragment>
+      ) : (
+        <Fragment key={`terminal-${worldNonce}`}>
+          <TerminalScenario />
         </Fragment>
       )}
 
