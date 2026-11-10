@@ -195,6 +195,45 @@ cortes do combo (Espaço), projéteis do orbe (C), explosão do C# (knockback 8)
 Matar dá XP (`xpReward` do scaling) + moedas. O player tem 0,9s de i-frames
 contra hits de inimigo (`damagePlayer`).
 
+## API (Fase 3 — editor de níveis)
+
+O serviço `api/` (irmão de `game/`, Express + Postgres) guarda o **rascunho**
+e as **versões publicadas** do mundo editado em `/editor`. O jogo busca
+`GET /worlds/published` no boot (com cache/ETag em `localStorage`) quando
+`VITE_API_URL` está definida; sem ela, ou com a API fora do ar, usa o cache
+local ou o mundo embutido.
+
+### Dev local (docker compose)
+
+Na raiz do repo (`game/`):
+
+```bash
+docker compose up -d postgres api   # postgres :5433, api :3001
+cd ../api && npm run dev            # alternativa: tsx watch sem docker
+```
+
+`api/.env` (gitignored — gere com `openssl rand -hex 32` para `EDITOR_TOKEN`)
+configura `DATABASE_URL`, `DATABASE_SSL`, `EDITOR_TOKEN`, `ALLOWED_ORIGINS`
+e `PORT`. O editor pede o token na primeira ação remota (botões "Salvar no
+servidor"/"Publicar"/"Versões").
+
+### Deploy Railway
+
+1. **Serviço `api`**: novo serviço a partir do repo, **Root Directory `api`**,
+   builder Dockerfile (o `api/Dockerfile` já é multi-stage).
+2. **Postgres**: adicionar o plugin Postgres ao projeto — a `DATABASE_URL`
+   é injetada automaticamente.
+3. **Variáveis do `api`**: `DATABASE_SSL=true` (Railway exige SSL),
+   `EDITOR_TOKEN` (segredo longo), `ALLOWED_ORIGINS` (URL pública do jogo +
+   `http://localhost:5173` para dev).
+4. **Healthcheck**: `GET /health` → `ok`.
+5. **Serviço `game`**: definir `VITE_API_URL` = URL pública do serviço `api`
+   (sem barra final) e redeploy — a variável é embutida no bundle em build.
+
+Endpoints: `GET /health`, `POST /auth/check`, `GET|PUT /worlds/draft`,
+`POST /worlds/publish`, `GET /worlds/published` (público, ETag/304),
+`GET /worlds/versions`, `POST /worlds/rollback/:version`.
+
 ## Próximos passos sugeridos
 
 - Colisão/física com `@react-three/rapier` (obstáculos e limites do mapa)

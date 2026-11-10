@@ -2,6 +2,8 @@ import { useRef } from 'react'
 import { useEditorStore } from '../useEditorStore'
 import { exportJson, importJsonFile, bundledClone } from '../draft'
 import { validateWorldCached } from '../validate'
+import { apiConfigured } from '../api'
+import { openVersions, publishWorld, saveToServer, withRemoteAuth } from '../remote'
 
 /**
  * Barra superior do editor: cenas, histórico, salvar/testar/exportar/importar.
@@ -172,11 +174,43 @@ export function Toolbar() {
         >
           Salvar local {dirty ? '…' : lastSavedAt ? '✓' : ''}
         </button>
-        <button className="tb-btn" disabled title="Fase 3">
+        <button
+          className="tb-btn"
+          disabled={!apiConfigured()}
+          title={
+            apiConfigured()
+              ? 'Salvar o rascunho na API (pede token se necessário)'
+              : 'VITE_API_URL não configurada'
+          }
+          onClick={() => withRemoteAuth(saveToServer)}
+        >
           Salvar no servidor
         </button>
-        <button className="tb-btn" disabled title="Fase 3">
+        <button
+          className="tb-btn"
+          disabled={!apiConfigured() || !canTest}
+          title={
+            !apiConfigured()
+              ? 'VITE_API_URL não configurada'
+              : !canTest
+                ? `Corrija os ${errorCount} erro(s) de validação para publicar`
+                : 'Salvar e publicar uma nova versão do mundo'
+          }
+          onClick={() => withRemoteAuth(publishWorld)}
+        >
           Publicar
+        </button>
+        <button
+          className="tb-btn"
+          disabled={!apiConfigured()}
+          title={
+            apiConfigured()
+              ? 'Versões publicadas — listar e restaurar (rollback)'
+              : 'VITE_API_URL não configurada'
+          }
+          onClick={() => withRemoteAuth(async () => openVersions())}
+        >
+          Versões
         </button>
       </div>
 

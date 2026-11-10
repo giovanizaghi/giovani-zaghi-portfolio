@@ -57,6 +57,8 @@ interface EditorStore {
   lastSavedAt: number | null
   pickMode: PickMode | null
   mouse: { x: number; z: number } | null
+  /** Modal remoto aberto: login do token da API ou lista de versões */
+  remoteModal: 'login' | 'versions' | null
   /** Visão do viewport: mapa 2D ou cena 3D real (mesma área, estado compartilhado) */
   viewMode: '2d' | '3d'
   /** Modo do gizmo TransformControls na visão 3D */
@@ -96,6 +98,7 @@ interface EditorStore {
   setViewMode: (mode: '2d' | '3d') => void
   toggleViewMode: () => void
   setGizmoMode: (mode: 'translate' | 'rotate' | 'scale') => void
+  setRemoteModal: (modal: 'login' | 'versions' | null) => void
 
   // ---- entidades ----
   addEntityAt: (type: Entity['type'], x: number, z: number) => void
@@ -204,6 +207,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
     mouse: null,
     viewMode: '2d',
     gizmoMode: 'translate',
+    remoteModal: null,
     history: { past: [], future: [] },
     remote: { status: 'idle', lastSavedAt: null, publishedVersion: null },
 
@@ -349,6 +353,7 @@ export const useEditorStore = create<EditorStore>((set, get) => {
     setViewMode: (viewMode) => set({ viewMode }),
     toggleViewMode: () => set((s) => ({ viewMode: s.viewMode === '2d' ? '3d' : '2d' })),
     setGizmoMode: (gizmoMode) => set({ gizmoMode }),
+    setRemoteModal: (remoteModal) => set({ remoteModal }),
 
     addEntityAt: (type, x, z) => {
       const { world, currentSceneId } = get()

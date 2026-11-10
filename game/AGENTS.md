@@ -68,6 +68,24 @@ capacidades do gizmo (`gizmo: { y, rotate, scale }`) em `entityDefs.ts`.
   tipo em `world.ts` + validação em `worldSchema.ts` + `case` no
   `SceneRenderer.tsx`.
 
+## API (Fase 3)
+
+`api/` (irmão de `game/`) é o serviço Express+Postgres do editor: rascunho
+(`PUT /worlds/draft`), publicação versionada (`POST /worlds/publish` →
+`GET /worlds/published` público com ETag/304) e rollback. Auth =
+`Bearer EDITOR_TOKEN` (timing-safe); sem token configurado as rotas
+protegidas respondem 503.
+
+- O jogo carrega o publicado em `useWorldStore.loadWorld()` quando
+  `VITE_API_URL` está definida (prioridade: `?world=draft` → API → bundled;
+  cache/ETag em `localStorage['world-published']`).
+- O editor fala com a API via `src/editor/api.ts` + `src/editor/remote.ts`;
+  token em `sessionStorage['editor-api-token']`, login sob demanda.
+- **Schema compartilhado:** `api/src/shared/` guarda cópias byte-idênticas
+  de `game/src/data/{worldSchema,world,items,keys,transports}.ts` — depois
+  de mudar qualquer um deles rode `npm run sync-schema` em `api/`;
+  `npm run check-schema` precisa passar (CI/manual).
+
 ## Sistema de transportes
 
 Cenas se conectam por **portas** (teleporte instantâneo via `enterScene`) ou

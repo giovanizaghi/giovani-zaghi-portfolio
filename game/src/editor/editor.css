@@ -631,3 +631,73 @@
   background: #e8c170;
   color: #3a2a18;
 }
+
+/* ---- Modais remotos (Fase 3) ---- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 20, 10, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal {
+  background: #fff4d6;
+  border: 2px solid #6b4d2e;
+  border-radius: 6px;
+  padding: 14px 16px;
+  min-width: 320px;
+  max-width: 480px;
+  max-height: 70vh;
+  overflow: auto;
+  font-family: "Courier New", monospace;
+  color: #3a2a18;
+}
+.modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.modal-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  border: 1px solid #6b4d2e;
+  background: #fffdf4;
+  font-family: "Courier New", monospace;
+  margin: 8px 0;
+}
+.modal-error {
+  color: #a03030;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+.versions-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.version-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px dashed #c9b48a;
+}
+.remote-status {
+  margin-left: 10px;
+  font-size: 11px;
+  color: #6b4d2e;
+}
+.remote-status.error {
+  color: #a03030;
+}

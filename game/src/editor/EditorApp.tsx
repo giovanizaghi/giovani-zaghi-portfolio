@@ -4,6 +4,7 @@ import { Palette } from './panels/Palette'
 import { MapCanvas } from './canvas/MapCanvas'
 import { Inspector } from './panels/Inspector'
 import { IssuesBar } from './panels/IssuesBar'
+import { RemoteModals } from './panels/RemoteModals'
 import { PasswordGate } from './PasswordGate'
 import { useEditorStore } from './useEditorStore'
 import './editor.css'
@@ -63,6 +64,7 @@ export default function EditorApp() {
           </div>
           <Inspector />
         </div>
+        <RemoteModals />
       </div>
     </PasswordGate>
   )

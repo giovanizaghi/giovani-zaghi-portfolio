@@ -16,6 +16,7 @@ export function IssuesBar() {
   const issues = validateWorldCached(world)
   const errors = issues.filter((i) => i.level === 'error')
   const warnings = issues.filter((i) => i.level === 'warning')
+  const remote = useEditorStore((s) => s.remote)
 
   const goToIssue = (issue: (typeof issues)[number]) => {
     if (issue.sceneId && world.scenes[issue.sceneId]) {
@@ -40,6 +41,24 @@ export function IssuesBar() {
         {warnings.length > 0 && <span className="badge warning">{warnings.length} aviso(s)</span>}
         {errors.length === 0 && warnings.length === 0 && <span className="badge ok">✓ válido</span>}
       </button>
+
+      {remote.status !== 'idle' && (
+        <span
+          className={`remote-status ${remote.status}`}
+          title={
+            remote.status === 'error'
+              ? 'Última ação remota falhou — veja o alerta'
+              : undefined
+          }
+        >
+          {remote.status === 'saving' && 'servidor: salvando…'}
+          {remote.status === 'saved' &&
+            remote.lastSavedAt &&
+            `servidor: salvo às ${new Date(remote.lastSavedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`}
+          {remote.status === 'saved' && !remote.lastSavedAt && 'servidor: salvo'}
+          {remote.status === 'error' && 'servidor: erro ao salvar'}
+        </span>
+      )}
 
       {open && (
         <div className="issues-list">

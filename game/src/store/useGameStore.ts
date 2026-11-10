@@ -503,6 +503,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
           level, xp, pendingLevelUps, statBonuses, skills, hearts, inventory, coins,
           slotLimit,
           scene,
+          // Versão do mundo publicado quando o save foi gravado (Fase 3) —
+          // loadGame não lê: cena desconhecida já cai no startScene
+          worldVersion: useWorldStore.getState().version,
           playerPos: [playerPosition.x, playerPosition.z],
           consumed: Object.keys(consumedEntities),
           keys,

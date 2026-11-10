@@ -19,14 +19,14 @@ Criar `api/` na raiz do repo (irmão de `game/`):
 
 ```
 api/
-  package.json           # express, pg, cors, zod (schema), tsx/typescript para dev
+  package.json           # express, pg, cors, tsx/typescript para dev
   tsconfig.json
   Dockerfile             # node:22-alpine, npm ci, build tsc, CMD node dist/server.js
   src/
     server.ts            # app + listen(process.env.PORT ?? 3001)
     db.ts                # Pool pg + migrate() na inicialização (CREATE TABLE IF NOT EXISTS)
     auth.ts              # middleware Bearer EDITOR_TOKEN (comparação em tempo constante)
-    worldSchema.ts       # mesmo schema da Fase 1 (zod). Ver "Compartilhar schema" abaixo
+    shared/             # CÓPIAS byte-idênticas de game/src/data/{worldSchema,world,items,keys,transports}.ts (sem zod — validador manual compartilhado)
     routes/worlds.ts
   .env.example
 ```
@@ -46,8 +46,10 @@ CREATE TABLE IF NOT EXISTS worlds (
   kind       TEXT NOT NULL CHECK (kind IN ('draft', 'published')),
   version    INTEGER NOT NULL,         -- incrementa a cada publish; draft usa 0
   data       JSONB NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()  -- última gravação (draft upsert/publish)
 );
+-- + UNIQUE parcial em (version) WHERE kind='published' (além do índice do plano)
 CREATE UNIQUE INDEX IF NOT EXISTS worlds_draft_unique ON worlds (kind) WHERE kind = 'draft';
 CREATE INDEX IF NOT EXISTS worlds_published_version ON worlds (version DESC) WHERE kind = 'published';
 ```
@@ -87,7 +89,11 @@ Jogo (Railway → serviço `game`):
 
 ## Compartilhar schema entre `game/` e `api/`
 
-Opção simples (recomendada): manter `worldSchema.ts` em `game/src/data/` como fonte, e em `api/` um script `npm run sync-schema` que copia o arquivo (ou um symlink commitado não funciona bem no Docker). Alternativa: workspace npm na raiz com pacote `shared/` — mais correto, porém muda o build da Railway (root directory). Decidir no início da fase; default = cópia + script de sync + checagem no CI/build de que os arquivos são iguais.
+**Implementado:** `api/src/shared/` guarda cópias byte-idênticas dos 5 arquivos
+(`worldSchema.ts`, `world.ts`, `items.ts`, `keys.ts`, `transports.ts`) —
+`worldSchema` é o validador manual da Fase 1 (sem zod). `npm run sync-schema`
+em `api/` copia de `game/src/data/`; `npm run check-schema` falha se divergirem
+(regra registrada no AGENTS.md).
 
 ## Passos
 

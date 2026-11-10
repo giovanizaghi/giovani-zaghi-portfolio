@@ -10,6 +10,8 @@ import type { WorldData } from '../data/world'
  */
 
 export const DRAFT_KEY = 'editor-world-draft'
+/** Timestamp (ms) do último save local — comparado com o updatedAt remoto */
+export const DRAFT_UPDATED_AT_KEY = 'editor-world-draft-updated-at'
 const INVALID_BACKUP_KEY = 'editor-world-draft-invalid-backup'
 
 /** Lê o rascunho salvo. Inválido/ausente → null (com backup do bruto se inválido). */
@@ -51,6 +53,7 @@ export function saveDraft(world: WorldData): void {
       }
     }
     localStorage.setItem(DRAFT_KEY, JSON.stringify(world))
+    localStorage.setItem(DRAFT_UPDATED_AT_KEY, String(Date.now()))
   } catch (err) {
     console.warn('[editor] falha ao salvar o rascunho', err)
   }
