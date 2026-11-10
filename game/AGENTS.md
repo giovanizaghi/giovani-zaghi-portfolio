@@ -36,6 +36,38 @@ cenário (Lua de Sangue). O ambiente (céu/luzes) vem de `scene.env` via
    `playerPos` salvo contra ela), `env` e `entities`.
 2. Apontar portas/transportes para ela via `toScene`/`toSpawn`.
 
+## Editor de níveis
+
+`/editor` é um editor standalone com duas visões no mesmo viewport:
+mapa 2D top-down (`src/editor/canvas/`) e **visão 3D real com gizmos**
+(`src/editor/viewport3d/`, lazy — three/@react-three/componentes do jogo
+ficam num chunk separado, carregado só ao alternar com `Tab`/botão).
+O chunk base do editor continua **sem** three — não importe nada de
+`src/components` ou `useGameStore` em `src/editor/` fora de `viewport3d/`.
+O rascunho fica em `localStorage['editor-world-draft']`
+(save com debounce de 800 ms; inválido é preservado em
+`editor-world-draft-invalid-backup`). "Testar ▶" abre
+`/?world=draft&scene=<id>` — nesse modo `useGameStore` **desliga a
+persistência** (não lê nem escreve `portfolio-game-save`).
+
+**Modo edição congelado:** `main.tsx` chama `setEditMode(true)` antes de
+montar o editor; `isEditMode()` (`src/store/editMode.ts`, módulo folha sem
+imports) desliga persistência no `useGameStore` e faz todo `useFrame` de
+gameplay + handlers de interação (`tryEnter`/`tryPass`/`tryBoard`) retornarem
+cedo — o preview 3D mostra os visuais reais sem nada se mover. **Todo
+componente novo com gameplay em `useFrame` deve early-return em
+`isEditMode()`**, e todo tipo de entidade novo precisa declarar as
+capacidades do gizmo (`gizmo: { y, rotate, scale }`) em `entityDefs.ts`.
+
+- Registro de entidades: `src/editor/entityDefs.ts` (label, glifo, cor,
+  `defaults()`, campos do inspector, `normalize`). Canvas/hit-test leem de lá.
+- Validação ao vivo: `src/editor/validate.ts` (`parseWorld` + warnings
+  semânticos) — erros bloqueiam o "Testar ▶".
+- IDs novos: `${cena}:${tipo}:${6 chars}` via `crypto.getRandomValues`.
+- Para **adicionar um tipo de entidade**: entrada em `entityDefs.ts` +
+  tipo em `world.ts` + validação em `worldSchema.ts` + `case` no
+  `SceneRenderer.tsx`.
+
 ## Sistema de transportes
 
 Cenas se conectam por **portas** (teleporte instantâneo via `enterScene`) ou

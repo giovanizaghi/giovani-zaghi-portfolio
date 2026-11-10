@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useGameStore } from '../store/useGameStore'
+import { isEditMode } from '../store/editMode'
 
 interface SceneTriggerProps {
   /** Centro do gatilho no plano XZ */
@@ -24,6 +25,7 @@ export function SceneTrigger({ x, z, radius, dialogueId, once }: SceneTriggerPro
   const r2 = radius * radius
 
   useFrame(() => {
+    if (isEditMode()) return // preview do editor: congelado
     const { playerPosition, openDialogue } = useGameStore.getState()
     const dx = playerPosition.x - x
     const dz = playerPosition.z - z

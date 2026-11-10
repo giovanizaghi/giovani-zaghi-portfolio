@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Group } from 'three'
 import { useGameStore } from '../store/useGameStore'
+import { isEditMode } from '../store/editMode'
 
 interface CoffeeCupProps {
   position: readonly [number, number, number]
@@ -17,6 +18,7 @@ export function CoffeeCup({ position }: CoffeeCupProps) {
   const angle = useRef(Math.random() * Math.PI * 2)
 
   useFrame((_, delta) => {
+    if (isEditMode()) return // preview do editor: congelado
     if (consumed || !group.current) return
     angle.current += delta * 2.5
     group.current.position.y = position[1] + Math.sin(angle.current) * 0.08

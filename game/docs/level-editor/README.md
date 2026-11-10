@@ -15,7 +15,7 @@ use um arquivo por vez com `/plan`:
 
 - **Backend:** API Node própria na Railway (Express + Postgres). Não usar Supabase nem commits via GitHub.
 - **Editor:** rota `/editor` dentro do mesmo app Vite (code-split via `lazy`). Sem app separado.
-- **Edição visual:** grid 2D top-down em `<canvas>`; o preview 3D é o **próprio jogo** lendo o draft (`/?world=draft`).
+- **Edição visual:** grid 2D top-down em `<canvas>` **e** visão 3D real com gizmos (lazy, `Tab`/botão alterna); o preview jogável é o **próprio jogo** lendo o draft (`/?world=draft`).
 - **Escopo do editor:** posicionar entidades, diálogos de NPC, stats por inimigo, portas/transportes entre cenas, bounds/spawn/luz/chão da cena.
 - **Fluxo de persistência:** local por padrão (`localStorage`, automático) → "Salvar no servidor" (draft) → "Publicar" (fica disponível no jogo em produção).
 - **Auth:** um único token (`EDITOR_TOKEN`) — editor é single-user.
@@ -36,4 +36,4 @@ use um arquivo por vez com `/plan`:
 1. **Conteúdo é dado, não código.** Toda a Fase 1 existe para isso; o editor só manipula JSON.
 2. **Reaproveitar os componentes existentes** (`Crawler`, `Coin`, `Npc`, `LockedDoor`, `Transport`, …). Nada de reescrever gameplay.
 3. **O jogo nunca fica sem mapa.** Sempre há fallback para `src/data/default-world.json` embutido no build.
-4. **Simples.** Sem multiusuário, sem upload de GLB, sem gizmo 3D.
+4. **Simples.** Sem multiusuário, sem upload de GLB. A visão 3D usa os componentes do jogo congelados (`isEditMode()`) com gizmos do drei.

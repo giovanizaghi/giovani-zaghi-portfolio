@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { Vector3 } from 'three'
 import { useWorldStore } from './useWorldStore'
+import { isEditMode } from './editMode'
 import {
   deriveStats,
   xpToNext,
@@ -196,11 +197,16 @@ interface GameStore {
 
 const SAVE_KEY = 'portfolio-game-save'
 
-// Cena/spawn iniciais vêm do mundo já carregado por loadWorld() (bundled ou draft)
+// Cena/spawn iniciais vêm do mundo já carregado por loadWorld() (bundled ou
+// draft). `?world=draft&scene=<id>` força a cena do teste do editor.
 const initialWorld = useWorldStore.getState()
-const initialScene = initialWorld.world.startScene
+const initialScene = initialWorld.testScene ?? initialWorld.world.startScene
 const initialSpawn =
   initialWorld.getSpawn(initialScene) ?? ([0, 0, 0] as [number, number, number])
+
+// Persistência desligada: modo teste do editor (`?world=draft`) e preview 3D
+// do /editor (isEditMode) — em ambos o jogo nunca lê nem escreve o save real.
+const PERSISTENCE_OFF = initialWorld.source === 'draft' || isEditMode()
 
 // ---- Autosave ----
 // Padrão "dirty + debounce + flush": ações frequentes marcam o save como
@@ -217,7 +223,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
   scene: initialScene,
   playerPosition: new Vector3(...initialSpawn),
   playerDirection: new Vector3(0, 0, 1),
-  pendingSpawn: null,
+  // O Player aplica no primeiro frame — sem save (novo jogo ou modo teste do
+  // editor) ele nasce no spawn da cena inicial; loadGame sobrescreve se houver save
+  pendingSpawn: new Vector3(...initialSpawn),
   interactDoor: null,
   transition: null,
   interactTarget: null,
@@ -464,6 +472,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     get().saveGame() // fim da batalha (horda derrotada ou despistada) = checkpoint
   },
   queueSave: () => {
+    // Modo teste do editor: nunca agenda save real
+    if (PERSISTENCE_OFF) return
     // Sem autosave durante batalha — salva ao derrotar/fugir da horda (endBattle)
     if (get().inBattle) return
     dirty = true
@@ -475,6 +485,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }, AUTOSAVE_DELAY)
   },
   saveGame: () => {
+    // Modo teste do editor: não escreve nem acende o indicador de save
+    if (PERSISTENCE_OFF) return
     if (saveTimer) {
       clearTimeout(saveTimer)
       saveTimer = null
@@ -681,8 +693,9 @@ export function getEffectiveStats(): StatBlock {
   return applyBuffs(deriveStats(level, statBonuses), buffs)
 }
 
-// Restaura a progressão salva ao carregar o módulo
-useGameStore.getState().loadGame()
+// Restaura a progressão salva ao carregar o módulo — pulado no modo teste
+// do editor (?world=draft), que nunca toca no save real
+if (!PERSISTENCE_OFF) useGameStore.getState().loadGame()
 
 // Flush do save pendente quando a aba fecha ou vai para segundo plano
 if (typeof window !== 'undefined') {

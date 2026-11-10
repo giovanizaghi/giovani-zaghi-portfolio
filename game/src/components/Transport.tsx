@@ -3,6 +3,7 @@ import type { RefObject } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Group, Mesh, Vector3 } from 'three'
 import { useGameStore } from '../store/useGameStore'
+import { isEditMode } from '../store/editMode'
 import type { Collider, DoorTarget, SceneId } from '../store/useGameStore'
 import { DIRECTION_VECTORS, TRANSPORT_CONFIG } from '../data/transports'
 import type {
@@ -402,6 +403,7 @@ export function Transport({ id, kind, position, ride, scene, spawn, label }: Tra
   }, [target])
 
   const tryBoard = () => {
+    if (isEditMode()) return // preview do editor: sem interação
     const { playerPosition, interactWithDoor } = useGameStore.getState()
     const dx = playerPosition.x - boardPos.x
     const dz = playerPosition.z - boardPos.z
@@ -411,6 +413,7 @@ export function Transport({ id, kind, position, ride, scene, spawn, label }: Tra
   }
 
   useFrame(() => {
+    if (isEditMode()) return // preview do editor: viagem congelada
     const store = useGameStore.getState()
 
     // ---- Proximidade → hint de interação (edge-detected, igual às portas) ----

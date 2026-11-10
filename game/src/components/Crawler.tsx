@@ -11,6 +11,7 @@ import {
   Vector3 as YVector3,
 } from 'yuka'
 import { useGameStore } from '../store/useGameStore'
+import { isEditMode } from '../store/editMode'
 import {
   alertAllEnemies,
   damagePlayer,
@@ -407,6 +408,7 @@ export function Crawler({ position, stats }: CrawlerProps) {
   }, [ctx, fsm, pos3, registryId, consumedId])
 
   useFrame((state, delta) => {
+    if (isEditMode()) return // preview do editor: IA congelada
     if (ctx.dead) return
     const store = useGameStore.getState()
     // IA pausada junto com o player (diálogo/menu/level-up/game over/viagem)

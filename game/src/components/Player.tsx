@@ -270,7 +270,7 @@ export function Player() {
   })
 
   return (
-    <group ref={group} position={[4.5, 0, 8.5]} visible={!riding}>
+    <group ref={group} visible={!riding}>
       {/* grupo "hurt": solavanco vertical ao levar dano — o físico fica no pai */}
       <group ref={hurt}>
         {/* destaque vermelho que pisca ao receber dano */}

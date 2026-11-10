@@ -1,0 +1,633 @@
+/* ============================================================
+   Editor de níveis (/editor) — CSS puro, sem dependências.
+   Paleta do jogo: creme #fff4d6, marrom #6b4d2e, dourado #e8c170,
+   fonte Courier New. Layout = grid de viewport inteira; cada painel
+   rola internamente (o body nunca rola — overflow:hidden global).
+   ============================================================ */
+
+.editor-app {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100vh;
+  width: 100vw;
+  background: #fff4d6;
+  color: #6b4d2e;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 13px;
+  overflow: hidden;
+}
+
+/* ---------- Toolbar ---------- */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px;
+  background: #6b4d2e;
+  color: #fff4d6;
+  border-bottom: 3px solid #e8c170;
+  flex-wrap: wrap;
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tb-btn {
+  background: #fff4d6;
+  color: #6b4d2e;
+  border: 1px solid #a8845c;
+  border-radius: 3px;
+  padding: 4px 8px;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tb-btn:hover:not(:disabled) {
+  background: #e8c170;
+}
+
+.tb-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.tb-btn.danger:hover:not(:disabled) {
+  background: #d98a7b;
+}
+
+.tb-btn.test {
+  background: #e8c170;
+  font-weight: bold;
+}
+
+.tb-btn.save {
+  min-width: 92px;
+}
+
+.scene-select {
+  background: #fff4d6;
+  color: #6b4d2e;
+  border: 1px solid #a8845c;
+  border-radius: 3px;
+  padding: 4px 6px;
+  font-family: inherit;
+  font-size: 12px;
+  max-width: 220px;
+}
+
+/* ---------- Corpo ---------- */
+
+.editor-body {
+  display: grid;
+  grid-template-columns: 190px 1fr 280px;
+  min-height: 0;
+}
+
+/* ---------- Paleta ---------- */
+
+.palette {
+  display: flex;
+  flex-direction: column;
+  background: #f3e3c2;
+  border-right: 2px solid #d9bd8f;
+  min-height: 0;
+}
+
+.palette-tabs {
+  display: flex;
+  border-bottom: 2px solid #d9bd8f;
+}
+
+.tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 8px 4px;
+  font-family: inherit;
+  font-size: 12px;
+  color: #8a6a45;
+  cursor: pointer;
+}
+
+.tab.active {
+  color: #6b4d2e;
+  border-bottom-color: #e8c170;
+  font-weight: bold;
+  background: #fff4d6;
+}
+
+.palette-list {
+  overflow-y: auto;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pal-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff4d6;
+  border: 1px solid #d9bd8f;
+  border-radius: 3px;
+  padding: 5px 7px;
+  font-family: inherit;
+  font-size: 12px;
+  color: #6b4d2e;
+  cursor: pointer;
+  text-align: left;
+}
+
+.pal-item:hover {
+  border-color: #e8c170;
+}
+
+.pal-item.active {
+  background: #e8c170;
+  border-color: #b98d3e;
+  font-weight: bold;
+}
+
+.pal-item.add {
+  border-style: dashed;
+  color: #8a6a45;
+}
+
+.pal-glyph {
+  width: 18px;
+  text-align: center;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.pal-sub {
+  display: block;
+  font-size: 10px;
+  color: #8a6a45;
+}
+
+.palette-hint {
+  font-size: 11px;
+  color: #8a6a45;
+  padding: 6px 4px;
+  line-height: 1.4;
+}
+
+/* ---------- Centro (canvas + issues) ---------- */
+
+.editor-center {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.map-canvas-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: #2e2a24;
+}
+
+.map-canvas-wrap canvas {
+  display: block;
+}
+
+.pick-banner {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #e8c170;
+  color: #6b4d2e;
+  border: 2px solid #6b4d2e;
+  border-radius: 4px;
+  padding: 6px 14px;
+  font-size: 13px;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* ---------- Barra de issues ---------- */
+
+.issues-bar {
+  position: relative;
+  background: #efe0bd;
+  border-top: 2px solid #d9bd8f;
+  padding: 4px 10px;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+}
+
+.issues-toggle {
+  background: none;
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+  padding: 2px 4px;
+}
+
+.badge {
+  border-radius: 3px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.badge.error {
+  background: #d9534f;
+  color: #fff;
+}
+
+.badge.warning {
+  background: #e8c170;
+  color: #6b4d2e;
+}
+
+.badge.ok {
+  background: #7fb069;
+  color: #fff;
+}
+
+.issues-list {
+  position: absolute;
+  bottom: 100%;
+  left: 10px;
+  right: 10px;
+  max-height: 40vh;
+  overflow-y: auto;
+  background: #fff4d6;
+  border: 2px solid #6b4d2e;
+  border-radius: 4px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  z-index: 20;
+  padding: 4px;
+}
+
+.issue-item {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 1px solid #e5d3a8;
+  padding: 5px 6px;
+  font-family: inherit;
+  font-size: 12px;
+  color: #6b4d2e;
+  cursor: pointer;
+  text-align: left;
+}
+
+.issue-item:hover {
+  background: #e8c170;
+}
+
+.issue-item.error .issue-level {
+  color: #d9534f;
+}
+
+.issue-item.warning .issue-level {
+  color: #b8860b;
+}
+
+.issue-scene {
+  font-weight: bold;
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+.issue-msg {
+  flex: 1;
+}
+
+/* ---------- Inspector ---------- */
+
+.inspector {
+  background: #fff4d6;
+  border-left: 2px solid #d9bd8f;
+  overflow-y: auto;
+  padding: 10px;
+  min-height: 0;
+}
+
+.inspector h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: #6b4d2e;
+}
+
+.inspector h4.section {
+  margin: 14px 0 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #8a6a45;
+  border-bottom: 1px solid #e5d3a8;
+  padding-bottom: 3px;
+}
+
+.inspector-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.entity-glyph {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.entity-id {
+  font-size: 10px;
+  color: #8a6a45;
+  word-break: break-all;
+}
+
+.inspector-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.field-label {
+  font-size: 11px;
+  color: #8a6a45;
+}
+
+.field input[type='text'],
+.field input[type='number'],
+.field input:not([type]),
+.field select,
+.field textarea {
+  background: #fff;
+  border: 1px solid #d9bd8f;
+  border-radius: 3px;
+  padding: 4px 6px;
+  font-family: inherit;
+  font-size: 12px;
+  color: #6b4d2e;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: 2px solid #e8c170;
+  border-color: #b98d3e;
+}
+
+.field input[type='color'] {
+  width: 42px;
+  height: 26px;
+  padding: 1px;
+  cursor: pointer;
+}
+
+.field input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  accent-color: #b98d3e;
+}
+
+.field-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.field-inline select,
+.field-inline input {
+  flex: 1;
+  min-width: 0;
+}
+
+.field-hint {
+  font-size: 10px;
+  color: #8a6a45;
+}
+
+.vec3 {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.vec3 input {
+  width: 64px !important;
+}
+
+.vec3-axes {
+  font-size: 10px;
+  color: #8a6a45;
+}
+
+.spawn-picker {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.spawn-picker input {
+  width: 60px !important;
+}
+
+.mini-btn {
+  background: #fff4d6;
+  border: 1px solid #a8845c;
+  border-radius: 3px;
+  padding: 3px 7px;
+  font-family: inherit;
+  font-size: 11px;
+  color: #6b4d2e;
+  cursor: pointer;
+}
+
+.mini-btn:hover:not(:disabled) {
+  background: #e8c170;
+}
+
+.mini-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.mini-btn.danger:hover:not(:disabled) {
+  background: #d98a7b;
+}
+
+.btn {
+  background: #e8c170;
+  border: 1px solid #b98d3e;
+  border-radius: 3px;
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  color: #6b4d2e;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.btn:hover {
+  background: #f0d18c;
+}
+
+.btn.danger {
+  background: #d98a7b;
+  border-color: #a85f50;
+}
+
+.hint {
+  font-size: 11px;
+  color: #8a6a45;
+  line-height: 1.5;
+}
+
+.ro-value {
+  font-size: 12px;
+  color: #6b4d2e;
+  background: #f3e3c2;
+  border-radius: 3px;
+  padding: 4px 6px;
+  display: inline-block;
+}
+
+.panel-empty {
+  padding: 16px;
+  color: #8a6a45;
+  font-size: 12px;
+}
+
+.line-row {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  margin-bottom: 6px;
+}
+
+.line-text {
+  flex: 1;
+  background: #fff;
+  border: 1px solid #d9bd8f;
+  border-radius: 3px;
+  padding: 5px 7px;
+  font-family: inherit;
+  font-size: 12px;
+  color: #6b4d2e;
+  resize: vertical;
+}
+
+.line-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* ---------- Password gate ---------- */
+
+.gate {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #2e2a24;
+}
+
+.gate-card {
+  background: #fff4d6;
+  border: 3px solid #e8c170;
+  border-radius: 6px;
+  padding: 28px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 300px;
+  font-family: 'Courier New', Courier, monospace;
+  color: #6b4d2e;
+}
+
+.gate-card h1 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.gate-card p {
+  margin: 0;
+  font-size: 12px;
+}
+
+.gate-card input {
+  background: #fff;
+  border: 1px solid #d9bd8f;
+  border-radius: 3px;
+  padding: 7px 9px;
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.gate-card button {
+  background: #e8c170;
+  border: 1px solid #b98d3e;
+  border-radius: 3px;
+  padding: 7px 14px;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.gate-error {
+  color: #c0392b;
+  font-size: 11px;
+}
+
+/* ---- Visão 3D ---- */
+.viewport-3d {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+.viewport-3d canvas {
+  display: block;
+}
+.viewport-3d-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #6b4d2e;
+  font-family: "Courier New", monospace;
+}
+.tb-btn.active {
+  background: #e8c170;
+  color: #3a2a18;
+}

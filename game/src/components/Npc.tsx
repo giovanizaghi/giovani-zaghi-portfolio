@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import { Vector3 } from 'three'
 import { useGameStore } from '../store/useGameStore'
+import { isEditMode } from '../store/editMode'
 import { useWorldStore } from '../store/useWorldStore'
 
 const INTERACT_RADIUS = 1.8
@@ -31,6 +32,7 @@ export function Npc({ position, dialogueId, color = '#b5651d' }: NpcProps) {
   }, [dialogueId, npcPos])
 
   useFrame(() => {
+    if (isEditMode()) return // preview do editor: congelado
     const { playerPosition, activeNpc, setInteractTarget } = useGameStore.getState()
     const near = playerPosition.distanceTo(npcPos) < INTERACT_RADIUS
     if (near !== wasNear.current) {

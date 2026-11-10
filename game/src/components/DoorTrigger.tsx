@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Vector3 } from 'three'
 import { useGameStore } from '../store/useGameStore'
+import { isEditMode } from '../store/editMode'
 import type { DoorTarget } from '../store/useGameStore'
 import type { KeyColor } from '../data/keys'
 import type { Vec3 } from '../data/world'
@@ -65,6 +66,7 @@ export function DoorTrigger({
   }, [id, label, toScene, toSpawn, lock, padlock, x, z])
 
   useFrame(() => {
+    if (isEditMode()) return // preview do editor: congelado
     const { playerPosition, setInteractDoor, interactDoor } = useGameStore.getState()
     const near = playerPosition.distanceTo(pos) < radius
     if (near !== wasNear.current) {
@@ -87,6 +89,7 @@ export function DoorTrigger({
   }, [target])
 
   const tryEnter = () => {
+    if (isEditMode()) return // preview do editor: sem interação
     const { playerPosition, interactWithDoor } = useGameStore.getState()
     const dx = playerPosition.x - x
     const dz = playerPosition.z - z

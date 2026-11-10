@@ -24,7 +24,7 @@ const TREE_MODELS = {
 } as const
 
 /** Alturas padrão de cada tipo de entidade quando `y` não é explícito */
-const DEFAULT_Y: Partial<Record<Entity['type'], number>> = {
+export const DEFAULT_Y: Partial<Record<Entity['type'], number>> = {
   coin: 0.5,
   coffee: 0.55,
   item: 0.6,
@@ -32,7 +32,9 @@ const DEFAULT_Y: Partial<Record<Entity['type'], number>> = {
   gate: 1.1,
 }
 
-function entityY(e: Entity): number {
+export function entityY(e: Entity): number {
+  // Bloco sem `y` flutua pela metade da altura (mesma regra do case 'block')
+  if (e.type === 'block' && e.y === undefined) return e.size[1] / 2
   return e.y ?? DEFAULT_Y[e.type] ?? 0
 }
 
@@ -79,14 +81,15 @@ function Tree({
   )
 }
 
-/** Renderiza uma entidade do JSON — `key` = entity.id (vem do map) */
-function renderEntity(e: Entity) {
+/** Renderiza UMA entidade do JSON — reusado pelo SceneRenderer do jogo e
+ *  pela visão 3D do editor (o `key` fica no elemento pai). */
+export function EntityView({ entity: e }: { entity: Entity }) {
   const pos: [number, number, number] = [e.x, entityY(e), e.z]
   switch (e.type) {
     case 'tree':
       // Suspense por árvore: o GLB carregando não esconde o resto da cena
       return (
-        <Suspense key={e.id} fallback={null}>
+        <Suspense fallback={null}>
           <Tree model={e.model} height={e.height} x={e.x} y={pos[1]} z={e.z} rotY={e.rotY} />
         </Suspense>
       )
@@ -95,7 +98,7 @@ function renderEntity(e: Entity) {
       if (e.visible === false) return null // só colisor, sem malha
       return (
         <mesh
-          key={e.id}
+         
           position={[e.x, e.y ?? e.size[1] / 2, e.z]}
           rotation-y={e.rotY ?? 0}
           castShadow
@@ -114,7 +117,7 @@ function renderEntity(e: Entity) {
       if (e.variant === 'room') {
         return (
           <Html
-            key={e.id}
+           
             position={pos}
             center
             distanceFactor={18}
@@ -129,46 +132,46 @@ function renderEntity(e: Entity) {
         // sem distanceFactor: com câmera ortográfica zoom=62 ele geraria
         // escala ~zoom*factor e o letreiro cobriria a tela inteira
         return (
-          <Html key={e.id} position={pos} center zIndexRange={[8, 0]}>
+          <Html position={pos} center zIndexRange={[8, 0]}>
             <div className="terminal-sign">{e.text}</div>
           </Html>
         )
       }
       return (
-        <Html key={e.id} position={pos} center zIndexRange={[8, 0]}>
+        <Html position={pos} center zIndexRange={[8, 0]}>
           <div className="platform-label">{e.text}</div>
         </Html>
       )
     }
 
     case 'house':
-      return <HouseModel key={e.id} x={e.x} z={e.z} rotY={e.rotY} />
+      return <HouseModel x={e.x} z={e.z} rotY={e.rotY} />
 
     case 'coin':
-      return <Coin key={e.id} position={pos} value={e.value} />
+      return <Coin position={pos} value={e.value} />
 
     case 'coffee':
-      return <CoffeeCup key={e.id} position={pos} />
+      return <CoffeeCup position={pos} />
 
     case 'item':
-      return <ItemPickup key={e.id} position={pos} item={e.item} />
+      return <ItemPickup position={pos} item={e.item} />
 
     case 'key':
-      return <KeyPickup key={e.id} position={pos} color={e.color} />
+      return <KeyPickup position={pos} color={e.color} />
 
     case 'crawler':
-      return <Crawler key={e.id} position={pos} stats={e.stats} />
+      return <Crawler position={pos} stats={e.stats} />
 
     case 'flyer':
-      return <Flyer key={e.id} position={pos} stats={e.stats} />
+      return <Flyer position={pos} stats={e.stats} />
 
     case 'npc':
-      return <Npc key={e.id} position={pos} dialogueId={e.dialogueId} color={e.color} />
+      return <Npc position={pos} dialogueId={e.dialogueId} color={e.color} />
 
     case 'gate':
       return (
         <LockedGate
-          key={e.id}
+         
           position={pos}
           skill={e.skill}
           color={e.color}
@@ -180,7 +183,7 @@ function renderEntity(e: Entity) {
       if (e.panel) {
         return (
           <LockedDoor
-            key={e.id}
+           
             id={e.id}
             lock={e.lock}
             position={pos}
@@ -196,7 +199,7 @@ function renderEntity(e: Entity) {
       }
       return (
         <DoorTrigger
-          key={e.id}
+         
           id={e.id}
           x={e.x}
           z={e.z}
@@ -213,7 +216,7 @@ function renderEntity(e: Entity) {
     case 'transport':
       return (
         <Transport
-          key={e.id}
+         
           id={e.id}
           kind={e.kind}
           position={pos}
@@ -225,12 +228,12 @@ function renderEntity(e: Entity) {
       )
 
     case 'parked':
-      return <ParkedVehicle key={e.id} kind={e.kind} position={pos} direction={e.direction} />
+      return <ParkedVehicle kind={e.kind} position={pos} direction={e.direction} />
 
     case 'trigger':
       return (
         <SceneTrigger
-          key={e.id}
+         
           x={e.x}
           z={e.z}
           radius={e.radius}
@@ -239,6 +242,21 @@ function renderEntity(e: Entity) {
         />
       )
   }
+}
+
+/** Chão da cena (`env.ground`) — reusado pelo editor 3D */
+export function SceneGround({ ground }: { ground: SceneData['env']['ground'] }) {
+  return (
+    <mesh
+      position={[ground.center[0], ground.y ?? -0.2, ground.center[1]]}
+      receiveShadow
+    >
+      <boxGeometry
+        args={[ground.size[0], ground.thickness ?? 0.2, ground.size[1]]}
+      />
+      <meshBasicMaterial color={ground.color} />
+    </mesh>
+  )
 }
 
 /**
@@ -254,21 +272,12 @@ export function SceneRenderer({ scene }: { scene: SceneData }) {
     return () => colliders.forEach((c) => unregisterCollider(c.id))
   }, [scene])
 
-  const ground = scene.env.ground
-
   return (
     <group>
-      <mesh
-        position={[ground.center[0], ground.y ?? -0.2, ground.center[1]]}
-        receiveShadow
-      >
-        <boxGeometry
-          args={[ground.size[0], ground.thickness ?? 0.2, ground.size[1]]}
-        />
-        <meshBasicMaterial color={ground.color} />
-      </mesh>
-
-      {scene.entities.map((e) => renderEntity(e))}
+      <SceneGround ground={scene.env.ground} />
+      {scene.entities.map((e) => (
+        <EntityView key={e.id} entity={e} />
+      ))}
     </group>
   )
 }

@@ -89,8 +89,40 @@ Convenções (iguais ao jogo, ver `AGENTS.md`): norte = -Z (cima no canvas), sul
 - [ ] Validação impede referências quebradas (cena/diálogo inexistente).
 - [ ] Botões "Salvar no servidor"/"Publicar" existem, desabilitados com tooltip "Fase 3".
 
+## Visão 3D (gizmos)
+
+O viewport alterna entre o mapa 2D e uma **cena 3D real** (botão "3D/2D" na
+toolbar ou `Tab`). A visão 3D é lazy-loaded (`src/editor/viewport3d/`) —
+three/@react-three ficam fora do chunk base do editor.
+
+- Renderiza a cena com os mesmos componentes do jogo (`EntityView`,
+  `WorldEnvironment`, `SceneGround` exportados de `SceneRenderer.tsx`),
+  mas **congelada**: `src/store/editMode.ts` liga `isEditMode()` no
+  `main.tsx` antes do editor montar; todo `useFrame` de gameplay e todo
+  handler de interação (`tryEnter`/`tryPass`/`tryBoard`) retorna cedo, e
+  `useGameStore` desliga a persistência (`PERSISTENCE_OFF`).
+- Câmera: `PerspectiveCamera` + `OrbitControls` (drei, `makeDefault`).
+  Ao entrar/trocar de cena enquadra os `bounds`; `F` enquadra a seleção.
+- Seleção por clique (Shift = multi), helpers: círculo de trigger,
+  wireframe de bloco invisível, marcador de label, spawn ★, bounds,
+  marcador de `toSpawn` na mesma cena. Entidades com erro de validação (ou
+  que quebram o render, via error boundary) viram caixa wireframe vermelha.
+- **Gizmos** (`TransformControls` do drei num `Object3D` proxy na entidade
+  primária — última da seleção): `G` mover, `R` rotacionar, `S` escalar
+  (só na visão 3D; no 2D `G`/`R` mantêm o significado antigo). Botões
+  equivalentes na toolbar. Capacidades por tipo em `entityDefs.gizmo`
+  (`{ y, rotate, scale }`): `y` = handle vertical, `rotate` = aro Y
+  (porta só com `panel: true`), `scale` = só bloco (edita `size`, mín. 0.1).
+- Snap: translação 0.5, rotação 15°, escala 0.25 — `Alt` desliga (como no 2D).
+- Undo: `onMouseDown`→`beginEdit`, `onObjectChange`→`editLive`,
+  `onMouseUp`→`endEdit` — um passo de undo por drag. Translação move todas
+  as selecionadas pelo mesmo delta; rotação/escala só na primária. `y` só é
+  escrito quando o usuário arrasta no eixo Y; `rotY` fica em (−π, π].
+- O mapa 2D desenha `rotY` como o three vê de cima (x→direita, z→baixo =
+  R(−rotY)) — a matemática de `draw.ts`/`hitTest.ts` foi corrigida para
+  bater com `rotation.y` em qualquer ângulo.
+
 ## Fora do escopo desta fase
 
 - Qualquer chamada de rede (Fase 3).
-- Preview 3D embutido — o preview é o jogo.
 - Upload de modelos GLB.

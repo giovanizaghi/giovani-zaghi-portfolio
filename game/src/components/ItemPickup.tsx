@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import { Group } from 'three'
 import { useGameStore } from '../store/useGameStore'
+import { isEditMode } from '../store/editMode'
 import { ITEMS } from '../data/items'
 import type { ItemId } from '../data/items'
 import { burstBinary } from '../fx/particles'
@@ -29,6 +30,7 @@ export function ItemPickup({ position, item }: ItemPickupProps) {
   const def = ITEM_DEFS[item]
 
   useFrame((_, delta) => {
+    if (isEditMode()) return // preview do editor: congelado
     if (consumed || !group.current) return
     angle.current += delta * 1.8
     group.current.rotation.y = angle.current

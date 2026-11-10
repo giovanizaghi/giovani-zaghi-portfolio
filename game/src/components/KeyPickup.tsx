@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Group } from 'three'
 import { useGameStore } from '../store/useGameStore'
+import { isEditMode } from '../store/editMode'
 import { KEY_COLORS } from '../data/keys'
 import type { KeyColor } from '../data/keys'
 import { burstBinary } from '../fx/particles'
@@ -27,6 +28,7 @@ export function KeyPickup({ position, color }: KeyPickupProps) {
   const keyColor = KEY_COLORS[color].color
 
   useFrame((_, delta) => {
+    if (isEditMode()) return // preview do editor: congelado
     if (consumed || !group.current) return
     angle.current += delta * 1.8
     group.current.rotation.y = angle.current

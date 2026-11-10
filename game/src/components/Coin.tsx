@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Mesh } from 'three'
 import { useGameStore } from '../store/useGameStore'
+import { isEditMode } from '../store/editMode'
 import { burstBinary } from '../fx/particles'
 
 const PICKUP_RADIUS = 0.9
@@ -21,6 +22,7 @@ export function Coin({ position, value = COIN_VALUE }: CoinProps) {
   const angle = useRef(Math.random() * Math.PI * 2)
 
   useFrame((_, delta) => {
+    if (isEditMode()) return // preview do editor: congelado
     if (consumed || !mesh.current) return
     angle.current += delta * 3
     mesh.current.rotation.y = angle.current

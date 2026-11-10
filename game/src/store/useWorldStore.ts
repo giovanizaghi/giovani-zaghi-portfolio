@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import bundledJson from '../data/default-world.json'
+import { bundledWorld } from '../data/bundledWorld'
 import { parseWorld } from '../data/worldSchema'
 import type { SceneData, Vec3, WorldData } from '../data/world'
 
@@ -7,7 +7,7 @@ import type { SceneData, Vec3, WorldData } from '../data/world'
  * Store do mundo — fonte única das cenas/diálogos em runtime.
  *
  * Inicializada de forma síncrona com o JSON embutido no build
- * (`src/data/default-world.json`, sempre validado por `parseWorld`).
+ * (`src/data/bundledWorld.ts`, já validado por `parseWorld`).
  * `loadWorld()` pode trocar o mundo por um draft do editor (`?world=draft`
  * lê `localStorage['editor-world-draft']`) antes do App montar — a Fase 3
  * adiciona a busca do mundo publicado na API aqui também.
@@ -19,7 +19,11 @@ interface WorldStore {
   world: WorldData
   /** De onde veio o mundo atual — 'bundled' = JSON do build */
   source: WorldSource
+  /** Cena forçada por `?world=draft&scene=<id>` (modo teste do editor) —
+   *  null = usa world.startScene. Só existe com source 'draft'. */
+  testScene: string | null
   setWorld: (world: WorldData, source: WorldSource) => void
+  setTestScene: (sceneId: string | null) => void
   getScene: (id: string) => SceneData | undefined
   /** Spawn (respawn/fallback) da cena — undefined se a cena não existe */
   getSpawn: (id: string) => Vec3 | undefined
@@ -27,16 +31,12 @@ interface WorldStore {
   hasScene: (id: string) => boolean
 }
 
-// O JSON embutido SEMPRE passa pelo validador — nunca um cast cego
-const bundled = parseWorld(bundledJson)
-if (!bundled.ok) {
-  throw new Error(`default-world.json inválido: ${bundled.errors.join('; ')}`)
-}
-
 export const useWorldStore = create<WorldStore>((set, get) => ({
-  world: bundled.world,
+  world: bundledWorld,
   source: 'bundled',
+  testScene: null,
   setWorld: (world, source) => set({ world, source }),
+  setTestScene: (sceneId) => set({ testScene: sceneId }),
   getScene: (id) => get().world.scenes[id],
   getSpawn: (id) => get().world.scenes[id]?.spawn,
   getBounds: (id) => get().world.scenes[id]?.bounds,
@@ -48,11 +48,14 @@ const DRAFT_STORAGE_KEY = 'editor-world-draft'
 /**
  * Carrega o mundo ativo antes de montar o App:
  * `?world=draft` → rascunho do editor no localStorage (JSON.parse + parseWorld;
- * inválido/ausente → console.warn e mantém o bundled). Sem o parâmetro, não faz nada.
+ * inválido/ausente → console.warn e mantém o bundled). `?scene=<id>` junto
+ * força a cena inicial do teste (ignorado se não existir no draft).
+ * Sem o parâmetro `world=draft`, não faz nada.
  */
 export async function loadWorld(): Promise<void> {
   if (typeof window === 'undefined') return
-  if (new URLSearchParams(window.location.search).get('world') !== 'draft') return
+  const params = new URLSearchParams(window.location.search)
+  if (params.get('world') !== 'draft') return
   try {
     const raw = localStorage.getItem(DRAFT_STORAGE_KEY)
     if (!raw) {
@@ -64,7 +67,13 @@ export async function loadWorld(): Promise<void> {
       console.warn('[world] rascunho inválido — usando o mundo bundled:', parsed.errors)
       return
     }
-    useWorldStore.getState().setWorld(parsed.world, 'draft')
+    const store = useWorldStore.getState()
+    store.setWorld(parsed.world, 'draft')
+    // ?scene=<id> só vale se existir no draft — força a cena do teste
+    const testScene = params.get('scene')
+    store.setTestScene(
+      testScene && parsed.world.scenes[testScene] ? testScene : null
+    )
   } catch (err) {
     console.warn('[world] falha ao carregar o rascunho — usando o mundo bundled', err)
   }
