@@ -4,6 +4,7 @@ import { Vector3 } from 'three'
 import { useGameStore } from '../store/useGameStore'
 import type { DoorTarget } from '../store/useGameStore'
 import type { KeyColor } from '../data/keys'
+import type { Vec3 } from '../data/world'
 import { Padlock } from './Padlock'
 
 const DOOR_HEIGHT = 2.2
@@ -29,6 +30,10 @@ interface LockedDoorProps {
   label: string
   labelFront?: string
   labelBack?: string
+  /** Destino em OUTRA cena — quando presentes, os dois lados usam esse alvo
+   *  em vez do lado oposto da mesma porta (ex.: porta com painel que muda de cena) */
+  toScene?: string
+  toSpawn?: Vec3
 }
 
 /** Trigger de proximidade de um lado da porta — edge-detection igual às portas de cena */
@@ -76,6 +81,8 @@ export function LockedDoor({
   label,
   labelFront,
   labelBack,
+  toScene,
+  toSpawn,
 }: LockedDoorProps) {
   const unlocked = useGameStore((s) => s.unlockedDoors[id] === true)
   const scene = useGameStore((s) => s.scene)
@@ -97,8 +104,8 @@ export function LockedDoor({
       const padlock = toWorld(0, side * (DOOR_THICKNESS / 2 + 0.08))
       const target: DoorTarget = {
         label: side > 0 ? (labelFront ?? label) : (labelBack ?? label),
-        scene,
-        spawn,
+        scene: toScene ?? scene,
+        spawn: toSpawn ? [toSpawn[0], toSpawn[1], toSpawn[2]] : spawn,
         ...(lock
           ? {
               lock: {
@@ -116,7 +123,7 @@ export function LockedDoor({
       return { target, trigger }
     }
     return { front: build(1), back: build(-1) }
-  }, [px, py, pz, rotationY, scene, lock, id, label, labelFront, labelBack])
+  }, [px, py, pz, rotationY, scene, lock, id, label, labelFront, labelBack, toScene, toSpawn])
 
   // A porta está sempre fechada — colliders cobrem o vão inteiro
   useEffect(() => {

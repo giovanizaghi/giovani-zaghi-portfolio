@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useGameStore } from '../store/useGameStore'
-import { dialogues } from '../data/dialogues'
+import { useWorldStore } from '../store/useWorldStore'
 
 const TYPEWRITER_MS = 25
 
@@ -10,7 +10,9 @@ export function DialogueBox() {
   const lineIndex = useGameStore((s) => s.lineIndex)
   const advanceDialogue = useGameStore((s) => s.advanceDialogue)
 
-  const dialogue = activeNpc ? dialogues[activeNpc] : null
+  const dialogue = useWorldStore((s) =>
+    activeNpc ? s.world.dialogues[activeNpc] : undefined
+  )
   const line = dialogue?.lines[lineIndex] ?? ''
   const [displayed, setDisplayed] = useState('')
 

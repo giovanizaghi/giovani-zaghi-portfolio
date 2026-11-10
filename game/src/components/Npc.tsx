@@ -3,14 +3,14 @@ import { useFrame } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import { Vector3 } from 'three'
 import { useGameStore } from '../store/useGameStore'
-import { dialogues } from '../data/dialogues'
+import { useWorldStore } from '../store/useWorldStore'
 
 const INTERACT_RADIUS = 1.8
 const NPC_COLLIDER_RADIUS = 0.45
 
 interface NpcProps {
   position: readonly [number, number, number]
-  /** Id do diálogo em src/data/dialogues.ts */
+  /** Id do diálogo em world.dialogues (JSON do mundo) */
   dialogueId: string
   color?: string
 }
@@ -18,7 +18,7 @@ interface NpcProps {
 export function Npc({ position, dialogueId, color = '#b5651d' }: NpcProps) {
   const wasNear = useRef(false)
   const npcPos = useMemo(() => new Vector3(...position), [position])
-  const name = dialogues[dialogueId]?.name ?? dialogueId
+  const name = useWorldStore((s) => s.world.dialogues[dialogueId]?.name ?? dialogueId)
 
   useEffect(() => {
     const { registerCollider, unregisterCollider } = useGameStore.getState()

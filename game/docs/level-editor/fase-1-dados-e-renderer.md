@@ -2,7 +2,7 @@
 
 > Pré-requisito: nenhum. Leia `docs/level-editor/README.md` para o contexto geral.
 > Resultado esperado: o jogo joga **exatamente igual ao de hoje**, mas as 3 cenas
-> vêm de um JSON (`public/world/default.json`) renderizado por um único componente.
+> vêm de um JSON (`src/data/default-world.json`) renderizado por um único componente.
 
 ## Objetivo
 
@@ -20,7 +20,7 @@ Criar:
 - `src/store/useWorldStore.ts` — zustand: `world`, `source: 'bundled' | 'draft' | 'published'`, `setWorld`, `getScene(id)`.
 - `src/components/SceneRenderer.tsx` — renderiza `SceneData`.
 - `src/components/WorldEnvironment.tsx` — background + luzes a partir de `scene.env`.
-- `public/world/default.json` — mundo atual exportado.
+- `src/data/default-world.json` — mundo atual exportado.
 - `scripts/export-world.ts` — script descartável que gera o JSON acima a partir dos arrays atuais (rodar com `npx tsx` ou `node --experimental-strip-types`; apagar depois ou manter como referência).
 
 Modificar:
@@ -112,7 +112,7 @@ Regras:
 5. **`WorldEnvironment.tsx`** com `<color attach="background">`, `hemisphereLight`, `ambientLight`, `directionalLight` (manter os valores atuais de sombra).
 6. **`Experience.tsx`**: `<WorldEnvironment env={scene.env} />` + `<Fragment key={`${sceneId}-${worldNonce}`}><SceneRenderer scene={scene} /></Fragment>`. Player/Companion/etc. ficam como estão.
 7. **`scripts/export-world.ts`**: importar os arrays atuais (`trees`, `stones`, `path`, `altars`, `vaultWalls`, `walls`, `furniture`, `roomLabels`, plataformas do terminal, transportes da estação, etc.) e emitir `default.json`. Para itens que estão só em JSX (`<Coin position=…>`, `<Crawler>`, `<CoffeeCup>`…), transcrever manualmente no script. Garantir que os ids batam com os atuais onde eles importam para saves existentes (`forest-vault`, ids de transporte `*-station`, `consumedId` de inimigos/moedas — conferir como cada componente monta o id hoje e preservar o formato ou aceitar o reset com uma nota no commit).
-8. **`main.tsx`**: `await loadWorld()` → `bundled` (`fetch('/world/default.json')`, ou `import default.json` direto para não depender de rede) → `createRoot`. Já suportar `?world=draft` (localStorage).
+8. **`main.tsx`**: `await loadWorld()` → `bundled` (`import` do JSON embutido, sem depender de rede) → `createRoot`. Já suportar `?world=draft` (localStorage).
 9. **Validação visual**: rodar `npm run dev`, percorrer as 3 cenas comparando com a versão anterior (tirar screenshots antes do refactor para comparar). Testar: colisão nas paredes da casa e do cofre, porta do cofre com chave, saída da casa, entrada na casa, todos os 5 transportes → terminal → elevador de volta, Lua de Sangue (remount), game over → respawn, save/load.
 10. **Apagar os componentes de cenário antigos**, `npm run build`, `npm run lint`.
 

@@ -1,7 +1,7 @@
 # Fase 2 — Editor em `/editor` (grid 2D + inspector + diálogos + salvar local)
 
 > Pré-requisito: **Fase 1 concluída** — `WorldData`/`SceneData`/`Entity` em
-> `src/data/world.ts`, `SceneRenderer`, `useWorldStore`, `public/world/default.json`
+> `src/data/world.ts`, `SceneRenderer`, `useWorldStore`, `src/data/default-world.json`
 > e suporte a `?world=draft` no `main.tsx`.
 > Resultado esperado: em `http://localhost:5173/editor` eu crio/edito cenas e
 > diálogos num grid 2D, salvo localmente (automático) e testo no jogo real.

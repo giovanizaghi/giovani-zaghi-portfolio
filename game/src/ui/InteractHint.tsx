@@ -1,5 +1,5 @@
 import { useGameStore } from '../store/useGameStore'
-import { dialogues } from '../data/dialogues'
+import { useWorldStore } from '../store/useWorldStore'
 import { KEY_COLORS } from '../data/keys'
 
 /** "Pressione E para falar" exibido quando o player está perto de um NPC ou porta */
@@ -12,12 +12,15 @@ export function InteractHint() {
   // Assina chaves e portas abertas para o texto atualizar ao vivo
   const keys = useGameStore((s) => s.keys)
   const unlockedDoors = useGameStore((s) => s.unlockedDoors)
+  const npcName = useWorldStore((s) =>
+    interactTarget ? s.world.dialogues[interactTarget]?.name : undefined
+  )
 
   if (transition || gameOver || activeNpc || (!interactTarget && !interactDoor)) return null
 
   let label = interactDoor
     ? interactDoor.label
-    : `Falar com ${dialogues[interactTarget!]?.name ?? 'NPC'}`
+    : `Falar com ${npcName ?? 'NPC'}`
 
   const lock = interactDoor?.lock
   if (lock && !unlockedDoors[lock.id]) {

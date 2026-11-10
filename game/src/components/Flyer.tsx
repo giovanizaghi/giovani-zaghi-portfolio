@@ -20,6 +20,7 @@ import {
 } from '../store/enemyRegistry'
 import type { EnemyHit } from '../store/enemyRegistry'
 import { enemyScaling } from '../data/stats'
+import type { EnemyStats } from '../data/world'
 import { burstBinary } from '../fx/particles'
 
 // ---- Tunáveis do flyer ----
@@ -95,6 +96,8 @@ type Marker = 'none' | 'suspect' | 'alert'
 
 interface FlyerProps {
   position: readonly [number, number, number]
+  /** Stats por entidade (JSON do mundo) — sobrescrevem os BASE_* antes do scaling */
+  stats?: EnemyStats
 }
 
 /**
@@ -112,7 +115,7 @@ interface FlyerProps {
  *   recover → pausa pós-mergulho de volta à altitude de cruzeiro
  *   stunned → solavanco pra cima ao levar hit (knockback + stun)
  */
-export function Flyer({ position }: FlyerProps) {
+export function Flyer({ position, stats }: FlyerProps) {
   const spawnX = position[0]
   const spawnZ = position[2]
   // Id estável por posição — flyer morto não volta (save de mundo)
@@ -181,9 +184,9 @@ export function Flyer({ position }: FlyerProps) {
       delta: 0,
       t: 0,
       state: 'wander',
-      hp: BASE_HP * scaling.hpMult,
-      damage: BASE_DAMAGE * scaling.damageMult,
-      xpReward: scaling.xpReward,
+      hp: (stats?.hp ?? BASE_HP) * scaling.hpMult,
+      damage: (stats?.damage ?? BASE_DAMAGE) * scaling.damageMult,
+      xpReward: stats?.xp ?? scaling.xpReward,
       attackCd: 0,
       dead: store.consumedEntities[consumedId] === true,
       alt: HOVER_HEIGHT,
@@ -386,7 +389,7 @@ export function Flyer({ position }: FlyerProps) {
     fsm.changeTo('wander')
 
     return { ctx, fsm, vehicle }
-  }, [spawnX, spawnZ, consumedId, registryId])
+  }, [spawnX, spawnZ, consumedId, registryId, stats])
 
   // Registra o inimigo para receber hits de projéteis/efeitos de mundo
   useEffect(() => {

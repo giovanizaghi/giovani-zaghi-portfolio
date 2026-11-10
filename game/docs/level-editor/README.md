@@ -35,5 +35,5 @@ use um arquivo por vez com `/plan`:
 
 1. **Conteúdo é dado, não código.** Toda a Fase 1 existe para isso; o editor só manipula JSON.
 2. **Reaproveitar os componentes existentes** (`Crawler`, `Coin`, `Npc`, `LockedDoor`, `Transport`, …). Nada de reescrever gameplay.
-3. **O jogo nunca fica sem mapa.** Sempre há fallback para `public/world/default.json` embutido no build.
+3. **O jogo nunca fica sem mapa.** Sempre há fallback para `src/data/default-world.json` embutido no build.
 4. **Simples.** Sem multiusuário, sem upload de GLB, sem gizmo 3D.

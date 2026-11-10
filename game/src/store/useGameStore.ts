@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { Vector3 } from 'three'
-import { dialogues } from '../data/dialogues'
+import { useWorldStore } from './useWorldStore'
 import {
   deriveStats,
   xpToNext,
@@ -24,24 +24,9 @@ export interface Collider {
   radius: number
 }
 
-/** Cenas do jogo — 'outside' (quintal + floresta), 'house' (interior) e
- *  'terminal' (Terminal Central, destino de todos os transportes) */
-export type SceneId = 'outside' | 'house' | 'terminal'
-
-/** Ponto de respawn de cada cena (game over e fallback de spawn) */
-export const SCENE_SPAWNS: Record<SceneId, [number, number, number]> = {
-  outside: [4.5, 0, 8.5],
-  house: [4.5, 0, 4.2],
-  terminal: [0, 0, 4],
-}
-
-/** Região jogável de cada cena — posições salvas fora dela caem no spawn
- *  (protege contra saves corrompidos que deixariam o player preso) */
-const SCENE_BOUNDS: Record<SceneId, { minX: number; maxX: number; minZ: number; maxZ: number }> = {
-  outside: { minX: -22, maxX: 22, minZ: -12, maxZ: 62 },
-  house: { minX: -8.6, maxX: 8.6, minZ: -6.6, maxZ: 6.6 },
-  terminal: { minX: -14, maxX: 14, minZ: -11, maxZ: 11 },
-}
+/** Id de cena — string livre definida pelas chaves de `world.scenes`
+ *  (src/data/default-world.json). Spawn/bounds vêm do useWorldStore. */
+export type SceneId = string
 
 /** Alvo de interação que troca de cena (porta da casa / saída / transporte) */
 export interface DoorTarget {
@@ -211,6 +196,12 @@ interface GameStore {
 
 const SAVE_KEY = 'portfolio-game-save'
 
+// Cena/spawn iniciais vêm do mundo já carregado por loadWorld() (bundled ou draft)
+const initialWorld = useWorldStore.getState()
+const initialScene = initialWorld.world.startScene
+const initialSpawn =
+  initialWorld.getSpawn(initialScene) ?? ([0, 0, 0] as [number, number, number])
+
 // ---- Autosave ----
 // Padrão "dirty + debounce + flush": ações frequentes marcam o save como
 // pendente (queueSave) e escrevem em lote após AUTOSAVE_DELAY ms sem novas
@@ -223,8 +214,8 @@ let hideTimer: ReturnType<typeof setTimeout> | null = null
 let dirty = false
 
 export const useGameStore = create<GameStore>((set, get) => ({
-  scene: 'outside',
-  playerPosition: new Vector3(4.5, 0, 8.5),
+  scene: initialScene,
+  playerPosition: new Vector3(...initialSpawn),
   playerDirection: new Vector3(0, 0, 1),
   pendingSpawn: null,
   interactDoor: null,
@@ -328,7 +319,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   advanceDialogue: () => {
     const { activeNpc, lineIndex } = get()
     if (!activeNpc) return
-    const total = dialogues[activeNpc]?.lines.length ?? 0
+    const total =
+      useWorldStore.getState().world.dialogues[activeNpc]?.lines.length ?? 0
     if (lineIndex + 1 >= total) {
       set({ activeNpc: null, lineIndex: 0 })
     } else {
@@ -443,7 +435,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
   respawn: () => {
     const { scene, maxHearts } = get()
-    const spawn = SCENE_SPAWNS[scene]
+    const world = useWorldStore.getState()
+    const spawn =
+      world.getSpawn(scene) ??
+      world.getSpawn(world.world.startScene) ??
+      ([0, 0, 0] as [number, number, number])
     set({
       gameOver: false,
       hearts: maxHearts,
@@ -520,13 +516,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const maxHearts = deriveStats(level, statBonuses).maxHearts
       const slotLimit =
         typeof save.slotLimit === 'number' ? save.slotLimit : INITIAL_SLOT_LIMIT
+      // Cena salva que não existe no mundo atual cai no startScene
+      const world = useWorldStore.getState()
       const scene: SceneId =
-        typeof save.scene === 'string' && Object.hasOwn(SCENE_SPAWNS, save.scene)
-          ? (save.scene as SceneId)
-          : 'outside'
+        typeof save.scene === 'string' && world.hasScene(save.scene)
+          ? save.scene
+          : world.world.startScene
       // Morreu com o save aberto: volta no respawn da cena com vida cheia
       const died = typeof save.hearts === 'number' && save.hearts <= 0
-      const bounds = SCENE_BOUNDS[scene]
+      const bounds = world.getBounds(scene)
+      if (!bounds) return // cena sem bounds não deveria acontecer — ignora o save
       const savedPosValid =
         !died &&
         Array.isArray(save.playerPos) &&
@@ -541,7 +540,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         save.playerPos[1] <= bounds.maxZ
       const savedPos = savedPosValid
         ? new Vector3(save.playerPos[0], 0, save.playerPos[1])
-        : new Vector3(...SCENE_SPAWNS[scene])
+        : new Vector3(...(world.getSpawn(scene) ?? ([0, 0, 0] as [number, number, number])))
       const consumedEntities: Record<string, true> = {}
       if (Array.isArray(save.consumed)) {
         for (const id of save.consumed) {

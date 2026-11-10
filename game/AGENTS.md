@@ -13,28 +13,28 @@ npm run dev     # dev server (http://localhost:5173)
 
 ## Cenas
 
-`SceneId = 'outside' | 'house' | 'terminal'` em `src/store/useGameStore.ts`.
+As cenas são **dados**, não código: `src/data/default-world.json` (validado
+por `src/data/worldSchema.ts` → `parseWorld`) contém `scenes`, `dialogues` e
+`startScene`. O formato (`WorldData`/`SceneData`/`Entity`) está em
+`src/data/world.ts` e é lido pelo `useWorldStore` (`src/store/useWorldStore.ts`).
+`SceneId` é `string` — o id da cena é a chave em `world.scenes`.
 
-| Cena | Componente | Conteúdo |
-| --- | --- | --- |
-| `outside` | `HouseExterior` + `ForestScenario` + `TransportStation` | quintal, casa, floresta, transporte |
-| `house` | `HomeScenario` | interior da casa |
-| `terminal` | `TerminalScenario` | Terminal Central — destino de todos os transportes |
+`Experience.tsx` renderiza a cena atual com `<SceneRenderer scene={scene}/>`
+(um `switch` por `entity.type` em `src/components/SceneRenderer.tsx`) dentro
+de `Fragment key={`${sceneId}-${worldNonce}`}` — mudar a key remonta o
+cenário (Lua de Sangue). O ambiente (céu/luzes) vem de `scene.env` via
+`<WorldEnvironment>`; colliders estáticos saem de `computeSceneColliders`
+(`src/data/sceneColliders.ts`). Portas/transportes ligam cenas via
+`toScene`/`toSpawn` — `spawn` é onde o player aparece (`[x, y, z]`, y sempre 0).
 
-A troca de cena é renderizada em `Experience.tsx` por `scene` com
-`Fragment key={`${scene}-${worldNonce}`}` — mudar a key remonta o cenário.
+<!-- TODO Fase 4: documentar formato completo -->
 
 ### Como adicionar uma cena
 
-1. `useGameStore.ts`: incluir o id em `SceneId`, criar entrada em
-   `SCENE_SPAWNS` (respawn/fallback) e `SCENE_BOUNDS` (região jogável —
-   `loadGame` valida o `playerPos` salvo contra ela). `loadGame` já aceita
-   qualquer `SceneId` válido via `Object.hasOwn(SCENE_SPAWNS, save.scene)`.
-2. Criar `src/components/<Nome>Cenario.tsx` (ou similar) com o cenário,
-   colliders via `registerCollider`/`unregisterCollider` num `useEffect`.
-3. Renderizar em `Experience.tsx` num `Fragment` com key própria.
-4. Portas/transportes que levam à cena usam `DoorTarget { scene, spawn }` —
-   `spawn` é onde o player aparece (em `[x, y, z]`, y sempre 0).
+1. Adicionar uma entrada em `scenes` do `default-world.json` com `id`,
+   `name`, `spawn`, `bounds` (região jogável — `loadGame` valida o
+   `playerPos` salvo contra ela), `env` e `entities`.
+2. Apontar portas/transportes para ela via `toScene`/`toSpawn`.
 
 ## Sistema de transportes
 
@@ -50,11 +50,9 @@ por **transportes** (animação de veículo antes de carregar a cena).
   componente por tipo: `CarModel`, `VanModel`, `BusModel`, `PlaneModel`,
   `ElevatorModel`), `<Transport>` (interativo) e `<ParkedVehicle>`
   (decoração com colliders, sem interação).
-- `src/components/TransportStation.tsx` — os 5 transportes de partida da
-  cena `outside` (elevador up, carro east, van south, ônibus north,
-  avião northwest), todos → `terminal`.
-- `src/components/TerminalScenario.tsx` — plataformas com `ParkedVehicle`
-  por tipo + elevador de retorno (`down` → `outside`).
+- Transportes são entidades `type: 'transport'`/`'parked'` no JSON do mundo,
+  renderizadas pelo `SceneRenderer` (5 partidas em `outside` → `terminal`,
+  elevador de retorno em `terminal` → `outside`).
 
 ### Convenções
 
