@@ -6,6 +6,10 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
+# URL da API (Fase 3) — a Railway repassa a variável do serviço como build arg;
+# vazia → o jogo usa só o mundo embutido
+ARG VITE_API_URL=""
+ENV VITE_API_URL=$VITE_API_URL
 RUN npm run build
 
 # Serve stage
